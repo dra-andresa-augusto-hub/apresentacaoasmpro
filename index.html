@@ -630,6 +630,8 @@ th{background:#f7fafc;font-weight:bold;color:#2d3748}
         <button class="btn btn-pdf" onclick="generateMonthlyReportPDF()">📕 Gerar PDF do Relatório</button>
         <button class="btn btn-excel" onclick="exportPatientReportExcel()">📊 Excel Atendimentos</button>
         <button class="btn btn-pdf" onclick="generatePatientAppointmentsReportPDF()" style="background:#805ad5">📋 PDF Atendimentos por Paciente</button>
+        <!-- NOVO BOTÃO DE PRODUTIVIDADE -->
+        <button class="btn btn-success" onclick="generateProductivityReportPDF()" style="background:#38a169">📈 PDF Produtividade</button>
       </div>
       <table>
         <thead><tr><th>Paciente</th><th>Sessões</th><th>Total</th></tr></thead>
@@ -936,7 +938,7 @@ th{background:#f7fafc;font-weight:bold;color:#2d3748}
         <button class="pin-key" onclick="enterPinDigit('2')">2</button>
         <button class="pin-key" onclick="enterPinDigit('3')">3</button>
         <button class="pin-key" onclick="enterPinDigit('4')">4</button>
-        <button class="pin-key" onclick="enterPinDigit('5')">5</button>
+        button class="pin-key" onclick="enterPinDigit('5')">5</button>
         <button class="pin-key" onclick="enterPinDigit('6')">6</button>
         <button class="pin-key" onclick="enterPinDigit('7')">7</button>
         <button class="pin-key" onclick="enterPinDigit('8')">8</button>
@@ -3796,7 +3798,117 @@ function renderReports() {
   });
 }
 
-// NOVO RELATÓRIO: Atendimentos por Paciente (Todos os pacientes)
+// NOVO RELATÓRIO: Produtividade do Terapeuta (apenas seus pacientes)
+function generateProductivityReportPDF() {
+  const month = document.getElementById('reportMonth').value;
+  if (!month) {
+    alert('Selecione o mês/ano do relatório!');
+    return;
+  }
+  
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  
+  const [year, mon] = month.split('-');
+  const monthName = new Date(parseInt(year), parseInt(mon) - 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  // Pega apenas os agendamentos do profissional logado
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(month) && 
+    a.userId === currentUserId
+  );
+  
+  // Agrupa por paciente (cada paciente aparece uma vez)
+  const byPatient = {};
+  monthAppts.forEach(appt => {
+    if (!byPatient[appt.patientId]) { 
+      byPatient[appt.patientId] = {
+        patient: patients.find(p => p.id === appt.patientId),
+        sessions: 0, 
+        total: 0
+      }; 
+    }
+    byPatient[appt.patientId].sessions++;
+    byPatient[appt.patientId].total += parseFloat(appt.value || 0);
+  });
+  
+  // Ordena alfabeticamente
+  const sortedPatients = Object.values(byPatient).filter(item => item.patient).sort((a, b) => 
+    a.patient.name.localeCompare(b.patient.name)
+  );
+  
+  if (sortedPatients.length === 0) {
+    alert('Nenhum atendimento encontrado para este período.');
+    return;
+  }
+  
+  // Cabeçalho
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.text(sig.clinic.toUpperCase(), 105, 20, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text('RELATÓRIO DE PRODUTIVIDADE', 105, 35, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text(monthName.toUpperCase(), 105, 45, { align: 'center' });
+  
+  // Dados do terapeuta
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.text('Profissional: ' + (sig.name || '---'), 10, 60);
+  doc.text('Registro: ' + (sig.registry || '---'), 10, 68);
+  doc.line(10, 75, 200, 75);
+  
+  // Tabela de produtividade
+  const tableData = sortedPatients.map(item => [
+    item.patient.name,
+    item.sessions.toString(),
+    'R$ ' + item.total.toFixed(2)
+  ]);
+  
+  // Adiciona linha de total
+  const totalGeral = sortedPatients.reduce((sum, item) => sum + item.total, 0);
+  const totalAtendimentos = sortedPatients.reduce((sum, item) => sum + item.sessions, 0);
+  
+  doc.autoTable({
+    startY: 85,
+    head: [['Nome do Paciente', 'Qtd. Atendimentos', 'Valor Total']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontSize: 11 },
+    styles: { fontSize: 10 },
+    foot: [['TOTAL GERAL', totalAtendimentos.toString(), 'R$ ' + totalGeral.toFixed(2)]],
+    footStyles: { fillColor: [56, 161, 105], textColor: 255, fontStyle: 'bold' }
+  });
+  
+  // Rodapé com assinatura
+  const finalY = doc.lastAutoTable.finalY + 30;
+  
+  doc.setFontSize(11);
+  doc.setTextColor(30, 58, 95);
+  doc.text('_________________________________', 10, finalY);
+  doc.setTextColor(0, 0, 0);
+  doc.text(sig.name || 'Profissional', 10, finalY + 6);
+  doc.text(sig.registry || '', 10, finalY + 12);
+  
+  // Rodapé da página
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 285, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 290, { align: 'center' });
+  }
+  
+  const fileName = 'Produtividade_' + month + '_' + (sig.name ? sig.name.split(' ')[0] : 'Terapeuta') + '.pdf';
+  doc.save(fileName);
+}
+
+// NOVO RELATÓRIO: Atendimentos por Paciente (Todos os pacientes) - MANTIDO COMO ESTAVA
 function exportPatientReportExcel() {
   const month = document.getElementById('reportMonth').value;
   if (!month) {
