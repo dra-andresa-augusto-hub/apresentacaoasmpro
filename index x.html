@@ -1,0 +1,4255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASM Gestão Clínica</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#f0f2f5}
+.login-container{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f 0%,#2c5282 100%)}
+.login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:90%;max-width:400px;text-align:center}
+.login-box h1{color:#1e3a5f;margin-bottom:10px;font-size:28px}
+.login-box h2{color:#666;font-size:16px;margin-bottom:30px;font-weight:normal}
+.login-box .form-group{margin-bottom:20px;text-align:left}
+.login-box input{width:100%;padding:12px;border:2px solid #ddd;border-radius:8px;font-size:16px}
+.login-btn{width:100%;padding:14px;background:#1e3a5f;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:bold}
+.login-btn:hover{background:#2c5282}
+.login-error{color:#e53e3e;margin-top:15px;display:none;font-size:14px}
+.header{background:#1e3a5f;color:white;padding:15px;text-align:center}
+.header h1{margin:0;font-size:24px}
+.header p{margin:5px 0 0 0;font-size:14px;opacity:0.9}
+.user-bar{background:#152a45;color:white;padding:10px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.user-bar-left{display:flex;align-items:center;gap:15px;flex-wrap:wrap}
+.user-bar button{background:rgba(255,255,255,0.2);border:none;color:white;padding:5px 15px;border-radius:5px;cursor:pointer}
+.user-bar button:hover{background:rgba(255,255,255,0.3)}
+.user-dropdown{position:relative;display:inline-block}
+.user-dropdown-content{display:none;position:absolute;background-color:white;min-width:250px;box-shadow:0 8px 16px rgba(0,0,0,0.2);z-index:1000;border-radius:8px;overflow:hidden;right:0;top:100%;margin-top:5px}
+.user-dropdown-content.show{display:block}
+.user-dropdown-item{color:#2d3748;padding:12px 16px;text-decoration:none;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid #e2e8f0}
+.user-dropdown-item:hover{background-color:#f7fafc}
+.user-dropdown-item.current{background-color:#ebf8ff;border-left:4px solid #1e3a5f}
+.user-dropdown-item .user-info{flex:1}
+.user-dropdown-item .user-name{font-weight:bold;font-size:14px}
+.user-dropdown-item .user-prof{font-size:12px;color:#718096}
+.user-dropdown-item .check-mark{color:#38a169;font-weight:bold;margin-left:auto}
+.add-user-item{color:#38a169;border-top:2px dashed #e2e8f0}
+.nav{display:flex;justify-content:center;gap:10px;padding:10px;background:#2c5282;flex-wrap:wrap}
+.nav button{padding:10px 20px;border:none;background:rgba(255,255,255,0.2);color:white;border-radius:5px;cursor:pointer;font-size:14px}
+.nav button:hover,.nav button.active{background:white;color:#1e3a5f}
+.container{max-width:1200px;margin:20px auto;padding:0 20px}
+.section{display:none;background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+.section.active{display:block}
+.btn{padding:10px 20px;border:none;border-radius:5px;cursor:pointer;font-size:14px;margin:5px;font-weight:bold}
+.btn-primary{background:#1e3a5f;color:white}
+.btn-primary:hover{background:#2c5282}
+.btn-success{background:#38a169;color:white}
+.btn-success:hover{background:#2f855a}
+.btn-danger{background:#e53e3e;color:white}
+.btn-danger:hover{background:#c53030}
+.btn-whatsapp{background:#25d366;color:white}
+.btn-whatsapp:hover{background:#128c7e}
+.btn-warning{background:#d69e2e;color:white}
+.btn-warning:hover{background:#b7791f}
+.btn-pdf{background:#e53e3e;color:white}
+.btn-pdf:hover{background:#c53030}
+.btn-admin{background:#805ad5;color:white}
+.btn-admin:hover{background:#6b46c1}
+.btn-excel{background:#217346;color:white}
+.btn-excel:hover{background:#1e6b41}
+.form-group{margin-bottom:15px}
+.form-group label{display:block;margin-bottom:5px;font-weight:bold;color:#2d3748}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px;border:1px solid #cbd5e0;border-radius:5px;font-size:14px}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#1e3a5f}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:20px}
+.card{background:white;padding:15px;border-radius:8px;border:2px solid #e2e8f0;cursor:pointer;transition:all 0.3s}
+.card:hover{border-color:#1e3a5f;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:20px}
+.calendar-header{text-align:center;font-weight:bold;padding:10px;background:#1e3a5f;color:white;border-radius:5px}
+.calendar-day{background:#f7fafc;min-height:100px;padding:10px;border-radius:5px;cursor:pointer;border:1px solid #e2e8f0;position:relative}
+.calendar-day.week-view{min-height:200px}
+.appointment{color:white;padding:5px;margin:2px 0;border-radius:3px;font-size:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.appointment.cancelled{background:#a0aec0;text-decoration:line-through;opacity:0.7}
+.appointment .edit-icon{cursor:pointer;margin-left:5px;font-size:11px;opacity:0.8}
+.appointment .edit-icon:hover{opacity:1}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;z-index:1000}
+.modal.active{display:flex}
+.modal-content{background:white;padding:30px;border-radius:10px;width:90%;max-width:600px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #e2e8f0;padding-bottom:10px}
+.close-btn{background:none;border:none;font-size:28px;cursor:pointer;color:#718096}
+.close-btn:hover{color:#1e3a5f}
+table{width:100%;border-collapse:collapse;margin-top:20px}
+th,td{padding:12px;text-align:left;border-bottom:1px solid #e2e8f0}
+th{background:#f7fafc;font-weight:bold;color:#2d3748}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px}
+.summary-card{padding:20px;border-radius:10px;text-align:center;color:white;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+.summary-card.green{background:#38a169}
+.summary-card.red{background:#e53e3e}
+.summary-card.blue{background:#1e3a5f}
+.summary-card.purple{background:#805ad5}
+.summary-card.gold{background:#d69e2e}
+.tabs{display:flex;gap:10px;margin-bottom:20px;border-bottom:2px solid #e2e8f0;flex-wrap:wrap}
+.tab{padding:10px 20px;background:none;border:none;cursor:pointer;color:#4a5568;font-weight:bold}
+.tab.active{color:#1e3a5f;border-bottom:2px solid #1e3a5f}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.settings-box{background:#ebf8ff;padding:20px;border-radius:8px;margin-bottom:20px;border-left:4px solid #1e3a5f}
+.footer{text-align:center;padding:20px;background:#1e3a5f;color:white;margin-top:40px;font-size:12px}
+.session-checkbox{margin-right:10px;transform:scale(1.2)}
+.session-row{cursor:pointer;transition:background 0.2s}
+.session-row:hover{background:#ebf8ff}
+.session-row.selected{background:#bee3f8}
+.report-box{background:#f7fafc;padding:20px;border-radius:8px;white-space:pre-wrap;font-family:monospace;margin:20px 0;max-height:400px;overflow-y:auto;border:1px solid #e2e8f0;font-size:13px}
+.financial-row{cursor:pointer;transition:background 0.2s}
+.financial-row:hover{background:#ebf8ff}
+.financial-row.selected{background:#bee3f8}
+.loading{display:inline-block;width:20px;height:20px;border:3px solid #f3f3f3;border-top:3px solid #1e3a5f;border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.info-box{background:#ebf8ff;padding:15px;border-radius:8px;margin-bottom:20px;text-align:left;font-size:13px;color:#2c5282;border-left:4px solid #1e3a5f}
+.info-box strong{color:#1e3a5f}
+.patient-tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;justify-content:center}
+.patient-tab-btn{padding:15px 20px;border:2px solid #e2e8f0;background:white;border-radius:10px;cursor:pointer;font-size:14px;font-weight:bold;transition:all 0.3s;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:120px}
+.patient-tab-btn:hover{border-color:#1e3a5f;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.patient-tab-btn.active{background:#1e3a5f;color:white;border-color:#1e3a5f}
+.patient-tab-btn .emoji{font-size:24px}
+.patient-tab-btn .label{font-size:12px}
+.chart-container{position:relative;height:300px;margin:20px 0}
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:20px;margin-top:20px}
+.dashboard-card{background:white;padding:20px;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+.dashboard-card h3{color:#1e3a5f;margin-bottom:15px;font-size:18px;border-bottom:2px solid #e2e8f0;padding-bottom:10px}
+.admin-panel{background:#f7fafc;padding:20px;border-radius:10px;margin-top:20px}
+.admin-table{width:100%;margin-top:15px}
+.admin-table th{background:#1e3a5f;color:white}
+.admin-table tr:nth-child(even){background:#f0f2f5}
+.code-input{width:100%;padding:15px;font-size:20px;text-align:center;letter-spacing:3px;border:2px solid #cbd5e0;border-radius:8px;margin-bottom:15px;text-transform:uppercase;font-weight:bold}
+.code-input:focus{outline:none;border-color:#1e3a5f}
+.cpf-input{width:100%;padding:15px;font-size:18px;text-align:center;border:2px solid #cbd5e0;border-radius:8px;margin-bottom:20px;font-weight:bold}
+.cpf-input:focus{outline:none;border-color:#1e3a5f}
+.activation-error{color:#e53e3e;margin-top:10px;display:none;font-size:14px;padding:10px;background:#fed7d7;border-radius:5px}
+.activation-success{color:#38a169;margin-top:10px;display:none;font-size:14px;padding:10px;background:#c6f6d5;border-radius:5px}
+.payment-method{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.payment-method label{display:flex;align-items:center;gap:5px;padding:8px 15px;background:#f7fafc;border-radius:5px;cursor:pointer;transition:all 0.2s}
+.payment-method label:hover{background:#e2e8f0}
+.payment-method input[type="radio"]{margin-right:5px}
+.recurrence-options{background:#f7fafc;padding:15px;border-radius:8px;margin-top:15px}
+.consultation-type-item{display:flex;gap:10px;align-items:center;margin-bottom:10px;padding:10px;background:#f7fafc;border-radius:5px}
+.consultation-type-item input{flex:1}
+.consultation-type-item button{background:#e53e3e;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer}
+.welcome-container{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f 0%,#2c5282 100%);padding:20px}
+.welcome-box{background:white;padding:40px;border-radius:20px;box-shadow:0 15px 50px rgba(0,0,0,0.3);width:100%;max-width:400px;text-align:center}
+.welcome-box h1{color:#1e3a5f;margin-bottom:10px;font-size:28px;font-weight:bold}
+.welcome-box .subtitle{color:#718096;font-size:14px;margin-bottom:30px}
+.user-login-container{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#1e3a5f 0%,#2c5282 100%)}
+.user-login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:90%;max-width:400px;text-align:center}
+.back-link{display:block;margin-top:20px;color:#718096;font-size:14px;cursor:pointer;text-decoration:none}
+.back-link:hover{color:#1e3a5f}
+.admin-login-container{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#2d3748 0%,#4a5568 100%)}
+.admin-login-box{background:white;padding:40px;border-radius:15px;box-shadow:0 10px 40px rgba(0,0,0,0.2);width:90%;max-width:400px;text-align:center}
+.admin-login-box h2{color:#2d3748;margin-bottom:10px}
+.admin-login-box .subtitle{color:#718096;font-size:14px;margin-bottom:30px}
+.admin-login-btn{width:100%;padding:14px;background:#4a5568;color:white;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:bold;margin-top:10px}
+.admin-login-btn:hover{background:#2d3748}
+.users-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:15px;margin-top:20px}
+.user-card{background:#f7fafc;padding:20px;border-radius:10px;border:2px solid #e2e8f0;cursor:pointer;transition:all 0.3s;text-align:center;position:relative}
+.user-card:hover{border-color:#1e3a5f;transform:translateY(-2px)}
+.user-card.selected{background:#1e3a5f;color:white;border-color:#1e3a5f}
+.user-card .avatar{font-size:40px;margin-bottom:10px}
+.user-card .name{font-weight:bold;font-size:16px;margin-bottom:5px}
+.user-card .profession{font-size:13px;opacity:0.8}
+.user-card .registry{font-size:12px;margin-top:5px;opacity:0.7}
+.user-card .delete-btn{position:absolute;top:10px;right:10px;background:#e53e3e;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:14px;opacity:0;transition:opacity 0.3s}
+.user-card:hover .delete-btn{opacity:1}
+.user-card .delete-btn:hover{background:#c53030}
+.add-user-card{border:2px dashed #cbd5e0;background:#f7fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:150px;cursor:pointer;transition:all 0.3s}
+.add-user-card:hover{border-color:#38a169;background:#f0fff4}
+.add-user-card .icon{font-size:40px;color:#38a169;margin-bottom:10px}
+.add-user-card span{color:#38a169;font-weight:bold;font-size:14px}
+.user-limit-msg{color:#e53e3e;font-size:13px;margin-top:10px;text-align:center}
+.current-user-badge{background:#1e3a5f;color:white;padding:8px 15px;border-radius:20px;font-size:13px;display:inline-flex;align-items:center;gap:8px;margin-bottom:20px}
+.current-user-badge .switch{color:#bee3f8;cursor:pointer;text-decoration:underline;font-size:11px}
+.patient-search{width:100%;padding:12px;margin-bottom:20px;border:2px solid #e2e8f0;border-radius:8px;font-size:16px}
+.patient-search:focus{outline:none;border-color:#1e3a5f}
+.no-patients{text-align:center;padding:40px;color:#718096}
+.no-patients-icon{font-size:48px;margin-bottom:15px}
+.patient-modal-tabs{display:grid;grid-template-columns:repeat(2,1fr);gap:15px;margin-bottom:25px}
+.patient-modal-tab{background:white;border:2px solid #e2e8f0;border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.3s;display:flex;flex-direction:column;align-items:center;gap:8px}
+.patient-modal-tab:hover{border-color:#1e3a5f;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.patient-modal-tab.active{background:#1e3a5f;color:white;border-color:#1e3a5f}
+.patient-modal-tab .icon{font-size:32px}
+.patient-modal-tab .title{font-weight:bold;font-size:14px}
+.patient-modal-content{display:none}
+.patient-modal-content.active{display:block}
+.patient-card-list{display:flex;flex-direction:column;gap:15px;margin-top:20px}
+.patient-card-item{background:white;border:2px solid #e2e8f0;border-radius:12px;padding:20px;cursor:pointer;transition:all 0.3s;position:relative}
+.patient-card-item:hover{border-color:#1e3a5f;transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.1)}
+.patient-card-item h3{color:#1e3a5f;margin-bottom:8px;font-size:18px;padding-right:40px}
+.patient-card-item .info{display:flex;flex-direction:column;gap:5px;color:#4a5568;font-size:14px}
+.patient-card-item .info span{display:flex;align-items:center;gap:8px}
+.patient-card-item .pending{color:#e53e3e;font-weight:bold}
+.patient-card-item .value{color:#38a169}
+.patient-card-item .delete-patient-btn{position:absolute;top:15px;right:15px;background:#e53e3e;color:white;border:none;padding:8px 12px;border-radius:5px;cursor:pointer;font-size:16px;opacity:0;transition:opacity 0.3s}
+.patient-card-item:hover .delete-patient-btn{opacity:1}
+.patient-card-item .delete-patient-btn:hover{background:#c53030}
+.modal-footer-actions{display:flex;gap:15px;margin-top:30px;padding-top:20px;border-top:2px solid #e2e8f0}
+.modal-footer-actions button{flex:1;padding:15px;font-size:16px;font-weight:bold;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-delete-patient{background:#e53e3e;color:white;border:none}
+.btn-delete-patient:hover{background:#c53030}
+.btn-save-patient{background:#1e3a5f;color:white;border:none}
+.btn-save-patient:hover{background:#2c5282}
+.evolution-item{background:#f7fafc;padding:15px;border-radius:8px;margin-bottom:10px;border-left:4px solid #1e3a5f}
+.evolution-item .date{color:#718096;font-size:12px;margin-bottom:5px}
+.evolution-item .text{color:#2d3748;font-size:14px;line-height:1.5}
+.evolution-list{max-height:300px;overflow-y:auto;margin-top:15px}
+.whatsapp-actions{display:flex;gap:10px;margin-top:15px;flex-wrap:wrap}
+.whatsapp-actions button{flex:1;min-width:120px}
+.user-type-selector{display:flex;gap:20px;margin-bottom:20px;justify-content:center}
+.user-type-option{flex:1;max-width:200px;padding:20px;border:2px solid #e2e8f0;border-radius:10px;cursor:pointer;text-align:center;transition:all 0.3s}
+.user-type-option:hover{border-color:#1e3a5f;transform:translateY(-2px)}
+.user-type-option.selected{border-color:#1e3a5f;background:#ebf8ff}
+.user-type-option.disabled{opacity:0.5;cursor:not-allowed;border-color:#cbd5e0;background:#f7fafc}
+.user-type-option.disabled:hover{transform:none;border-color:#cbd5e0}
+.user-type-option .icon{font-size:40px;margin-bottom:10px}
+.user-type-option .title{font-weight:bold;font-size:16px;color:#1e3a5f}
+.user-type-option .desc{font-size:12px;color:#718096;margin-top:5px}
+.user-type-option.disabled .title{color:#a0aec0}
+.user-type-option.disabled .desc{color:#cbd5e0}
+.limit-warning{background:#fed7d7;color:#c53030;padding:10px;border-radius:5px;margin-bottom:15px;font-size:13px;text-align:center}
+.limit-info{background:#c6f6d5;color:#276749;padding:10px;border-radius:5px;margin-bottom:15px;font-size:13px;text-align:center}
+.pin-modal-content{max-width:400px;text-align:center}
+.pin-display{font-size:32px;letter-spacing:15px;margin:20px 0;padding:15px;background:#f7fafc;border-radius:10px;border:2px solid #e2e8f0;min-height:60px;display:flex;align-items:center;justify-content:center}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:300px;margin:0 auto}
+.pin-key{padding:20px;font-size:24px;border:2px solid #e2e8f0;background:white;border-radius:10px;cursor:pointer;transition:all 0.2s;font-weight:bold}
+.pin-key:hover{background:#ebf8ff;border-color:#1e3a5f}
+.pin-key:active{background:#1e3a5f;color:white}
+.pin-key.delete{background:#fed7d7;border-color:#fc8181;color:#c53030}
+.pin-key.delete:hover{background:#fc8181;color:white}
+.pin-key.clear{background:#fefcbf;border-color:#f6e05e;color:#975a16}
+.pin-key.clear:hover{background:#f6e05e;color:white}
+.pin-key.enter{background:#c6f6d5;border-color:#68d391;color:#276749}
+.pin-key.enter:hover{background:#68d391;color:white}
+.pin-error{color:#e53e3e;margin-top:15px;font-size:14px;display:none}
+.pin-info{color:#718096;margin-bottom:15px;font-size:13px}
+.pin-input-field{width:100%;padding:15px;font-size:24px;text-align:center;letter-spacing:10px;border:2px solid #cbd5e0;border-radius:8px;margin-bottom:15px;font-weight:bold}
+.pin-input-field:focus{outline:none;border-color:#1e3a5f}
+.checkbox-container{display:flex;align-items:center;gap:10px;margin:15px 0;padding:15px;background:#f7fafc;border-radius:8px;border:2px solid #e2e8f0}
+.checkbox-container input[type="checkbox"]{width:20px;height:20px;cursor:pointer}
+.checkbox-container label{cursor:pointer;font-weight:normal;margin:0}
+.birthday-card{background:linear-gradient(135deg,#d69e2e 0%,#ecc94b 100%);color:white}
+.birthday-list{max-height:200px;overflow-y:auto;margin-top:15px}
+.birthday-item{display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,0.2);border-radius:8px;margin-bottom:8px}
+.birthday-item .icon{font-size:24px}
+.birthday-item .info{flex:1}
+.birthday-item .name{font-weight:bold}
+.birthday-item .date{font-size:12px;opacity:0.9}
+.birthday-item .btn-whatsapp-small{background:#25d366;color:white;border:none;padding:5px 10px;border-radius:5px;cursor:pointer;font-size:12px}
+.birthday-item .btn-whatsapp-small:hover{background:#128c7e}
+.no-birthday{text-align:center;padding:20px;color:rgba(255,255,255,0.8)}
+/* Cores para terapeutas na agenda */
+.appointment.color-green{background:#38a169}
+.appointment.color-orange{background:#ed8936}
+.appointment.color-yellow{background:#d69e2e;color:#000}
+.appointment.color-blue{background:#3182ce}
+.appointment.color-pink{background:#d53f8c}
+.appointment.color-red{background:#e53e3e}
+/* Visualização semanal */
+.week-calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-top:20px}
+.week-day{background:#f7fafc;min-height:300px;padding:15px;border-radius:8px;border:2px solid #e2e8f0}
+.week-day-header{text-align:center;font-weight:bold;padding:10px;background:#1e3a5f;color:white;border-radius:5px;margin-bottom:10px}
+.view-toggle{display:flex;gap:10px;align-items:center}
+.view-toggle button{padding:8px 16px;border:2px solid #1e3a5f;background:white;color:#1e3a5f;border-radius:5px;cursor:pointer;font-weight:bold}
+.view-toggle button.active{background:#1e3a5f;color:white}
+/* Legenda de cores */
+.color-legend{display:flex;gap:15px;flex-wrap:wrap;margin-top:15px;padding:15px;background:#f7fafc;border-radius:8px;align-items:center}
+.color-legend-item{display:flex;align-items:center;gap:8px;font-size:13px}
+.color-box{width:20px;height:20px;border-radius:4px}
+</style>
+</head>
+<body>
+
+<div id="welcomeScreen" class="welcome-container">
+  <div class="welcome-box">
+    <h1>🔷 ASM Gestão Clínica</h1>
+    <p class="subtitle">Sistema completo para gestão de clínicas e consultórios</p>
+    
+    <div class="form-group" style="text-align:left;margin-top:30px">
+      <label style="font-weight:bold;color:#2d3748;margin-bottom:8px;display:block">CPF</label>
+      <input type="text" class="cpf-input" id="userCPF" placeholder="000.000.000-00" maxlength="14" style="margin-bottom:15px">
+    </div>
+    
+    <div class="form-group" style="text-align:left">
+      <label style="font-weight:bold;color:#2d3748;margin-bottom:8px;display:block">Código de Ativação</label>
+      <input type="text" class="code-input" id="activationCode" placeholder="AA000000" maxlength="8">
+    </div>
+    
+    <button class="login-btn" id="activateBtn" onclick="activateSystem()" style="margin-top:10px">Acessar Sistema</button>
+    
+    <div class="activation-error" id="activationError"></div>
+    <div class="activation-success" id="activationSuccess">Acesso autorizado! Redirecionando...</div>
+    <div id="activationLoading" style="display:none;margin-top:15px"><div class="loading"></div><p style="margin-top:10px;color:#4a5568">Verificando...</p></div>
+    
+    <p style="margin-top:20px;font-size:11px;color:#a0aec0">© 2024 ASM Gestão Clínica - Dra. Andresa Augusto<br>Proibida reprodução sem autorização</p>
+  </div>
+</div>
+
+<div id="mainSystem" style="display:none">
+  <div class="header">
+    <h1>ASM Gestão Clínica</h1>
+    <p id="headerSubtitle">Sistema de Gestão para Profissionais da Saúde</p>
+  </div>
+  <div class="user-bar">
+    <div class="user-bar-left">
+      <span>👤 <span id="currentUserName">Profissional</span> | <span id="currentUserSpecialty">---</span> | <span id="currentUserRegistry">---</span></span>
+      
+      <div class="user-dropdown" id="userDropdownContainer" style="display:none">
+        <button onclick="toggleUserDropdown()" style="background:rgba(255,255,255,0.2);padding:5px 10px;border-radius:5px">🔄 Trocar Usuário ▼</button>
+        <div id="userDropdownMenu" class="user-dropdown-content"></div>
+      </div>
+    </div>
+    <div>
+      <button onclick="logout()">🚪 Sair</button>
+    </div>
+  </div>
+  <div class="nav" id="mainNav">
+    <button class="active" onclick="showSection('dashboard')">📊 Dashboard</button>
+    <button onclick="showSection('agenda')">📅 Agenda</button>
+    <button onclick="showSection('pacientes')">👥 Pacientes</button>
+    <button onclick="showSection('financeiro')">💰 Financeiro</button>
+    <button onclick="showSection('fluxo')">📊 Fluxo de Caixa</button>
+    <button onclick="showSection('relatorios')">📈 Relatórios</button>
+    <button onclick="showSection('configuracoes')">⚙️ Configurações</button>
+  </div>
+  <div class="container">
+    <div id="dashboard" class="section active">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h2>📊 Dashboard</h2>
+        <button class="btn btn-pdf" onclick="generateDashboardPDF()">📕 Gerar PDF</button>
+      </div>
+      <div class="summary-cards">
+        <div class="summary-card green"><h3 id="dashTotalRevenue">R$ 0,00</h3><p>Faturamento Total</p></div>
+        <div class="summary-card blue"><h3 id="dashTotalSessions">0</h3><p>Atendimentos</p></div>
+        <div class="summary-card purple"><h3 id="dashAvgTicket">R$ 0,00</h3><p>Ticket Médio</p></div>
+        <div class="summary-card red"><h3 id="dashPending">R$ 0,00</h3><p>A Receber</p></div>
+      </div>
+      
+      <!-- CARD DE ANIVERSARIANTES -->
+      <div class="summary-card birthday-card" id="birthdayCard" style="margin-top:20px;display:none">
+        <h3>🎂 Aniversariantes do Mês</h3>
+        <div class="birthday-list" id="birthdayList"></div>
+      </div>
+      
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <h3>📈 Faturamento por Tipo</h3>
+          <div class="chart-container"><canvas id="chartByType"></canvas></div>
+        </div>
+        <div class="dashboard-card">
+          <h3>💳 Por Forma de Pagamento</h3>
+          <div class="chart-container"><canvas id="chartByPayment"></canvas></div>
+        </div>
+      </div>
+      <div class="dashboard-card" style="margin-top:20px">
+        <h3>📅 Desempenho Mensal</h3>
+        <div class="chart-container" style="height:250px"><canvas id="chartMonthly"></canvas></div>
+      </div>
+    </div>
+    <div id="configuracoes" class="section">
+      <h2>⚙️ Configurações</h2>
+      <div class="tabs">
+        <button class="tab active" onclick="showConfigTab('dados')">👤 Meus Dados</button>
+        <button class="tab" onclick="showConfigTab('usuarios')">👥 Usuários</button>
+        <button class="tab" onclick="showConfigTab('tipos')">🏷️ Tipos de Consulta</button>
+        <button class="tab" onclick="showConfigTab('clinica')">🏢 Clínica</button>
+      </div>
+      <div id="configDados" class="tab-content active">
+        <div class="settings-box" id="profConfigBox">
+          <h3 style="color:#1e3a5f;margin-bottom:15px">👤 Dados do Profissional Atual</h3>
+          <div class="form-group">
+            <label>Nome Completo *</label>
+            <input type="text" id="configName" placeholder="Dr(a). Nome Completo">
+          </div>
+          <div class="form-group" id="configCPFGroup">
+            <label>CPF/CNPJ *</label>
+            <input type="text" id="configProfCPF" placeholder="000.000.000-00 ou 00.000.000/0000-00" maxlength="18" oninput="formatCPFCNPJ(this)">
+          </div>
+          <div class="form-group" id="configProfessionGroup">
+            <label>Especialidade/Profissão *</label>
+            <select id="configProfession" onchange="updateRegistryLabel()">
+              <option value="">Selecione...</option>
+              <option value="fisioterapia">Fisioterapia</option>
+              <option value="medicina">Medicina</option>
+              <option value="nutricao">Nutrição</option>
+              <option value="psicologia">Psicologia</option>
+              <option value="psicopedagogia">Psicopedagogia</option>
+              <option value="fonoaudiologia">Fonoaudiologia</option>
+              <option value="terapia_ocupacional">Terapia Ocupacional</option>
+              <option value="estetica">Estética</option>
+              <option value="enfermagem">Enfermagem</option>
+              <option value="odontologia">Odontologia</option>
+              <option value="educacao_fisica">Educação Física</option>
+            </select>
+          </div>
+          <div class="form-group" id="configRegistryGroup">
+            <label id="registryLabel">Registro Profissional *</label>
+            <input type="text" id="configRegistry" placeholder="00 0000 F">
+          </div>
+          <div class="form-group" id="configPixGroup">
+            <label>Chave Pix</label>
+            <input type="text" id="configPix" placeholder="CPF, CNPJ, e-mail ou telefone">
+          </div>
+          <div class="form-group" id="roleConfigGroup" style="display:none">
+            <label>Função *</label>
+            <select id="configRole">
+              <option value="terapeuta">Terapeuta</option>
+              <option value="secretaria">Secretária</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="saveConfig()">💾 Salvar Meus Dados</button>
+        </div>
+      </div>
+      <div id="configUsuarios" class="tab-content">
+        <div class="settings-box" style="background:#f0fff4;border-left-color:#38a169">
+          <h3 style="color:#276749;margin-bottom:15px">👥 Gestão de Usuários</h3>
+          <p style="font-size:13px;color:#718096;margin-bottom:15px">Gerencie até 6 terapeutas e 1 secretária neste código de acesso (máximo 7 usuários). Cada usuário tem seus próprios dados financeiros e relatórios.</p>
+          <div id="usersListContainer" class="users-list"></div>
+          <div id="userLimitMsg" class="user-limit-msg" style="display:none">Limite máximo de usuários atingido.</div>
+          <div style="margin-top:20px;padding:15px;background:#ebf8ff;border-radius:8px;font-size:13px;color:#2c5282">
+            <strong>ℹ️ Informação:</strong> A agenda é compartilhada entre todos os usuários. Todos podem visualizar e editar qualquer agendamento.
+          </div>
+        </div>
+        <div id="userFormContainer" style="display:none;margin-top:20px">
+          <div class="settings-box" style="background:#faf5ff;border-left-color:#805ad5">
+            <h3 style="color:#553c9a;margin-bottom:15px" id="userFormTitle">Novo Usuário</h3>
+            
+            <div class="user-type-selector" id="userTypeSelector">
+              <div class="user-type-option" id="typeTerapeuta" onclick="selectUserType('terapeuta')">
+                <div class="icon">👨‍⚕️</div>
+                <div class="title">Terapeuta</div>
+                <div class="desc">Profissional da saúde com acesso completo</div>
+              </div>
+              <div class="user-type-option" id="typeSecretaria" onclick="selectUserType('secretaria')">
+                <div class="icon">👩‍💼</div>
+                <div class="title">Secretária</div>
+                <div class="desc">Acesso apenas à agenda e pacientes</div>
+              </div>
+            </div>
+            
+            <input type="hidden" id="editingUserId">
+            <input type="hidden" id="newUserRole" value="terapeuta">
+            
+            <div id="limitWarning" class="limit-warning" style="display:none"></div>
+            <div id="limitInfo" class="limit-info" style="display:none"></div>
+            
+            <div class="form-group">
+              <label>Nome Completo *</label>
+              <input type="text" id="newUserName" placeholder="Dr(a). Nome Completo">
+            </div>
+            <div class="form-group" id="newUserProfessionGroup">
+              <label>Profissão *</label>
+              <select id="newUserProfession" onchange="updateNewUserRegistryLabel()">
+                <option value="">Selecione...</option>
+                <option value="fisioterapia">Fisioterapia</option>
+                <option value="medicina">Medicina</option>
+                <option value="nutricao">Nutrição</option>
+                <option value="psicologia">Psicologia</option>
+                <option value="psicopedagogia">Psicopedagogia</option>
+                <option value="fonoaudiologia">Fonoaudiologia</option>
+                <option value="terapia_ocupacional">Terapia Ocupacional</option>
+                <option value="estetica">Estética</option>
+                <option value="enfermagem">Enfermagem</option>
+                <option value="odontologia">Odontologia</option>
+                <option value="educacao_fisica">Educação Física</option>
+              </select>
+            </div>
+            <div class="form-group" id="newUserRegistryGroup">
+              <label id="newUserRegistryLabel">Registro Profissional *</label>
+              <input type="text" id="newUserRegistry" placeholder="00 0000 F">
+            </div>
+            <div class="form-group" id="newUserPixGroup">
+              <label>Chave Pix</label>
+              <input type="text" id="newUserPix" placeholder="CPF, CNPJ, e-mail ou telefone">
+            </div>
+            <div class="form-group" id="newUserPinGroup">
+              <label>PIN de 4 dígitos * <span style="font-weight:normal;color:#718096;font-size:12px">(Para acessar dados financeiros)</span></label>
+              <input type="password" id="newUserPin" placeholder="0000" maxlength="4" oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)" style="font-size:18px;letter-spacing:5px;text-align:center">
+              <p style="font-size:12px;color:#718096;margin-top:5px">Este PIN será usado para desbloquear Dashboard, Financeiro, Fluxo de Caixa e Relatórios</p>
+            </div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-primary" onclick="saveUser()">💾 Salvar Usuário</button>
+              <button class="btn btn-danger" onclick="cancelUserForm()">✗ Cancelar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="configTipos" class="tab-content">
+        <div class="settings-box" style="background:#f0fff4;border-left-color:#38a169">
+          <h3 style="color:#276749;margin-bottom:15px">🏷️ Tipos de Consulta e Valores</h3>
+          <p style="font-size:13px;color:#718096;margin-bottom:15px">Configure os tipos de atendimento e seus valores padrão</p>
+          <div id="consultationTypesList"></div>
+          <button class="btn btn-success" onclick="addConsultationType()" style="margin-top:10px">+ Adicionar Tipo</button>
+        </div>
+      </div>
+      <div id="configClinica" class="tab-content">
+        <div class="settings-box" style="background:#faf5ff;border-left-color:#805ad5">
+          <h3 style="color:#553c9a;margin-bottom:15px">🏢 Dados da Clínica</h3>
+          <div class="form-group">
+            <label>Nome da Clínica</label>
+            <input type="text" id="configClinic" placeholder="ASM Saúde">
+          </div>
+          <button class="btn btn-primary" onclick="saveClinicConfig()">💾 Salvar</button>
+        </div>
+        <div style="margin-top:30px;padding:20px;background:#f7fafc;border-radius:8px">
+          <h3 style="color:#1e3a5f;margin-bottom:15px">ℹ️ Informações da Conta</h3>
+          <p><strong>Código de ativação:</strong> <span id="displayCode">---</span></p>
+          <p style="margin-top:10px;font-size:12px;color:#718096">Dados salvos na nuvem Firebase.</p>
+        </div>
+      </div>
+    </div>
+    <div id="agenda" class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h2>📅 Agenda Compartilhada</h2>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="openAppointmentModal()">+ Novo Agendamento</button>
+          <button class="btn btn-success" onclick="openRecurrenceModal()">🔄 Recorrência</button>
+          <button class="btn btn-danger" onclick="openCancelRecurrenceModal()">❌ Cancelar Recorrência</button>
+          <button class="btn btn-excel" onclick="exportAgendaExcel()">📊 Excel</button>
+          <button class="btn btn-pdf" onclick="exportAgendaPDF()">📕 PDF</button>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:20px;margin-bottom:20px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="changeMonth(-1)">← Anterior</button>
+        <h3 id="currentMonth" style="text-transform:capitalize;min-width:200px;text-align:center"></h3>
+        <button class="btn btn-primary" onclick="changeMonth(1)">Próximo →</button>
+        <div class="view-toggle">
+          <button id="btnMonthView" class="active" onclick="setCalendarView('month')">Mensal</button>
+          <button id="btnWeekView" onclick="setCalendarView('week')">Semanal</button>
+        </div>
+      </div>
+      
+      <!-- Legenda de cores -->
+      <div class="color-legend" id="colorLegend">
+        <span style="font-weight:bold;color:#2d3748">Profissionais:</span>
+      </div>
+      
+      <div id="calendarContainer">
+        <div class="calendar" id="calendar"></div>
+      </div>
+      
+      <div style="margin-top:20px;padding:15px;background:#ebf8ff;border-radius:8px;font-size:13px;color:#2c5282">
+        <strong>ℹ️ Agenda Compartilhada:</strong> Todos os profissionais visualizam e podem editar qualquer agendamento.
+      </div>
+    </div>
+    
+    <div id="pacientes" class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <h2>👥 Pacientes</h2>
+        <button class="btn btn-primary" onclick="openPatientModal()">+ Novo Paciente</button>
+      </div>
+      <input type="text" class="patient-search" id="patientSearchInput" placeholder="🔍 Buscar paciente..." oninput="searchPatients(this.value)">
+      <div id="patientsListContainer" class="patient-card-list"></div>
+      <div id="noPatientsMsg" class="no-patients" style="display:none">
+        <div class="no-patients-icon">👥</div>
+        <p>Nenhum paciente cadastrado</p>
+        <p style="font-size:13px;margin-top:10px">Clique em "+ Novo Paciente" para começar</p>
+      </div>
+    </div>
+    
+    <div id="financeiro" class="section">
+      <h2>💰 Meu Financeiro</h2>
+      <div class="summary-cards">
+        <div class="summary-card green"><h3 id="totalReceived">R$ 0,00</h3><p>Recebido</p></div>
+        <div class="summary-card red"><h3 id="totalPending">R$ 0,00</h3><p>A Receber</p></div>
+        <div class="summary-card blue"><h3 id="totalSessions">0</h3><p>Meus Atendimentos</p></div>
+      </div>
+      <div style="margin-bottom:15px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-whatsapp" onclick="sendSelectedPendingWhatsApp()" id="btnCobrarSelecionados" style="display:none">📱 Cobrar Selecionados (<span id="selectedCount">0</span>)</button>
+        <button class="btn btn-primary" onclick="selectAllPending()">✓ Selecionar Todos Pendentes</button>
+        <button class="btn btn-warning" onclick="clearSelection()">✗ Limpar Seleção</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAllFinancial" onchange="toggleAllFinancial()"></th>
+            <th>Paciente</th>
+            <th>Data</th>
+            <th>Serviço</th>
+            <th>Valor</th>
+            <th>Forma Pag.</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="financialTable"></tbody>
+      </table>
+    </div>
+    <div id="fluxo" class="section">
+      <h2>📊 Meu Fluxo de Caixa</h2>
+      <div class="form-group" style="max-width:300px">
+        <label>Mês/Ano</label>
+        <input type="month" id="cashFlowMonth" onchange="renderCashFlow()">
+      </div>
+      <div class="summary-cards">
+        <div class="summary-card green"><h3 id="cfEntries">R$ 0,00</h3><p>Entradas</p></div>
+        <div class="summary-card red"><h3 id="cfExits">R$ 0,00</h3><p>Saídas</p></div>
+        <div class="summary-card blue"><h3 id="cfBalance">R$ 0,00</h3><p>Saldo</p></div>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="showCashFlowTab('entries')">💰 Entradas</button>
+        <button class="tab" onclick="showCashFlowTab('exits')">💸 Despesas</button>
+        <button class="btn btn-danger" onclick="openExpenseModal()" style="margin-left:auto">+ Despesa</button>
+      </div>
+      <div id="cfEntriesTab" class="tab-content active">
+        <table>
+          <thead><tr><th>Data</th><th>Paciente</th><th>Serviço</th><th>Valor</th><th>Forma Pag.</th></tr></thead>
+          <tbody id="entriesTable"></tbody>
+        </table>
+      </div>
+      <div id="cfExitsTab" class="tab-content">
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Ações</th></tr></thead>
+          <tbody id="exitsTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <div id="relatorios" class="section">
+      <h2>📈 Meus Relatórios</h2>
+      <div class="form-group" style="max-width:300px">
+        <label>Mês/Ano</label>
+        <input type="month" id="reportMonth" onchange="renderReports()">
+      </div>
+      <div class="summary-cards">
+        <div class="summary-card blue"><h3 id="reportSessions">0</h3><p>Meus Atendimentos</p></div>
+        <div class="summary-card green"><h3 id="reportRevenue">R$ 0,00</h3><p>Meu Faturamento</p></div>
+      </div>
+      <div style="margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-pdf" onclick="generateMonthlyReportPDF()">📕 Gerar PDF do Relatório</button>
+        <button class="btn btn-excel" onclick="exportPatientReportExcel()">📊 Excel Atendimentos</button>
+        <button class="btn btn-pdf" onclick="generatePatientAppointmentsReportPDF()" style="background:#805ad5">📋 PDF Atendimentos por Paciente</button>
+      </div>
+      <table>
+        <thead><tr><th>Paciente</th><th>Sessões</th><th>Total</th></tr></thead>
+        <tbody id="reportTable"></tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div class="modal" id="appointmentModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Agendamento</h3>
+        <button class="close-btn" onclick="closeModal('appointmentModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Paciente *</label>
+        <select id="apptPatient"></select>
+      </div>
+      <div class="form-group">
+        <label>Profissional Responsável *</label>
+        <select id="apptProfessional"></select>
+        <p style="font-size:12px;color:#718096;margin-top:5px">Este profissional receberá o faturamento deste atendimento</p>
+      </div>
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" id="apptDate">
+      </div>
+      <div class="form-group">
+        <label>Horário *</label>
+        <input type="time" id="apptTime">
+      </div>
+      <div class="form-group">
+        <label>Tipo de Atendimento</label>
+        <select id="apptType" onchange="updateApptValue()"></select>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$)</label>
+        <input type="number" id="apptValue" step="0.01" placeholder="0,00">
+      </div>
+      <div class="form-group">
+        <label>Forma de Pagamento</label>
+        <div class="payment-method">
+          <label><input type="radio" name="paymentMethod" value="pix" checked> 💠 Pix</label>
+          <label><input type="radio" name="paymentMethod" value="cartao"> 💳 Cartão</label>
+          <label><input type="radio" name="paymentMethod" value="dinheiro"> 💵 Dinheiro</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Observações</label>
+        <textarea id="apptNotes" rows="3"></textarea>
+      </div>
+      <div class="whatsapp-actions" id="whatsappActionsContainer" style="display:none">
+        <button class="btn btn-whatsapp" onclick="sendWhatsAppCharge()">📱 Cobrança</button>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:15px">
+        <button class="btn btn-whatsapp" id="btnWhatsAppt" onclick="sendAppointmentWhatsApp()" style="display:none">📱 WhatsApp</button>
+        <button class="btn btn-danger" id="btnDeleteAppt" onclick="deleteAppointment()" style="display:none">🗑 Excluir</button>
+        <button class="btn btn-primary" onclick="saveAppointment()" style="margin-left:auto">💾 Salvar</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal" id="recurrenceModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>🔄 Agendamento Recorrente</h3>
+        <button class="close-btn" onclick="closeModal('recurrenceModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Paciente *</label>
+        <select id="recPatient"></select>
+      </div>
+      <div class="form-group">
+        <label>Profissional Responsável *</label>
+        <select id="recProfessional"></select>
+        <p style="font-size:12px;color:#718096;margin-top:5px">Este profissional receberá o faturamento de todos os atendimentos</p>
+      </div>
+      <div class="form-group">
+        <label>Data Inicial *</label>
+        <input type="date" id="recStartDate">
+      </div>
+      <div class="form-group">
+        <label>Horário *</label>
+        <input type="time" id="recTime">
+      </div>
+      <div class="form-group">
+        <label>Repetir por *</label>
+        <select id="recWeeks">
+          <option value="4">4 semanas (1 mês)</option>
+          <option value="8">8 semanas (2 meses)</option>
+          <option value="12">12 semanas (3 meses)</option>
+          <option value="24">24 semanas (6 meses)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Frequência</label>
+        <select id="recFrequency">
+          <option value="7">Semanal (7 dias)</option>
+          <option value="15">Quinzenal (15 dias)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tipo de Atendimento</label>
+        <select id="recType" onchange="updateRecValue()"></select>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$)</label>
+        <input type="number" id="recValue" step="0.01" placeholder="0,00">
+      </div>
+      <div class="recurrence-options">
+        <p style="font-size:13px;color:#718096;margin-bottom:10px">Serão criados agendamentos automaticamente</p>
+        <div id="recPreview" style="font-size:12px;color:#2d3748"></div>
+      </div>
+      <button class="btn btn-success" onclick="saveRecurrence()" style="width:100%;margin-top:15px">Criar Agendamentos Recorrentes</button>
+    </div>
+  </div>
+  
+  <div class="modal" id="cancelRecurrenceModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>❌ Cancelar Recorrência</h3>
+        <button class="close-btn" onclick="closeModal('cancelRecurrenceModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Selecione o Paciente *</label>
+        <select id="cancelRecPatient" onchange="showRecurrentAppointments()">
+          <option value="">Selecione um paciente...</option>
+        </select>
+      </div>
+      <div id="recurrentAppointmentsList" style="display:none;margin-top:15px;max-height:300px;overflow-y:auto">
+        <p style="font-size:13px;color:#718096;margin-bottom:10px">Agendamentos recorrentes futuros encontrados:</p>
+        <div id="recurrentListContent"></div>
+      </div>
+      <div id="noRecurrentMsg" style="display:none;margin-top:15px;padding:15px;background:#f7fafc;border-radius:8px;text-align:center;color:#718096">
+        Nenhum agendamento recorrente futuro encontrado para este paciente.
+      </div>
+      <button class="btn btn-danger" id="btnCancelRecurrence" onclick="cancelRecurrence()" style="width:100%;margin-top:15px;display:none">
+        ❌ Cancelar Todos os Agendamentos Futuros
+      </button>
+    </div>
+  </div>
+  
+  <div class="modal" id="patientModal">
+    <div class="modal-content" style="max-width:700px;max-height:95vh">
+      <div class="modal-header">
+        <h3 id="patientModalTitle">Novo Paciente</h3>
+        <button class="close-btn" onclick="closeModal('patientModal')">&times;</button>
+      </div>
+      
+      <div class="patient-modal-tabs">
+        <div class="patient-modal-tab active" onclick="showPatientModalTab('info')" id="tabBtnInfo">
+          <span class="icon">👤</span>
+          <span class="title">Informações</span>
+        </div>
+        <div class="patient-modal-tab" onclick="showPatientModalTab('financeiro')" id="tabBtnFinanceiro">
+          <span class="icon">💰</span>
+          <span class="title">Financeiro</span>
+        </div>
+        <div class="patient-modal-tab" onclick="showPatientModalTab('evolucao')" id="tabBtnEvolucao">
+          <span class="icon">📋</span>
+          <span class="title">Evolução</span>
+        </div>
+        <div class="patient-modal-tab" onclick="showPatientModalTab('relatorio')" id="tabBtnRelatorio">
+          <span class="icon">📄</span>
+          <span class="title">Relatório</span>
+        </div>
+      </div>
+      
+      <div id="patientTabInfo" class="patient-modal-content active">
+        <input type="hidden" id="patientId">
+        <div class="form-group">
+          <label>Nome Completo *</label>
+          <input type="text" id="patientName" placeholder="Nome do paciente">
+        </div>
+        <div class="form-group">
+          <label>CPF *</label>
+          <input type="text" id="patientCPF" placeholder="000.000.000-00" maxlength="14" oninput="this.value=formatCPF(this.value)">
+        </div>
+        <div class="form-group">
+          <label>Data de Nascimento *</label>
+          <input type="date" id="patientBirthDate">
+        </div>
+        <div class="form-group">
+          <label>Telefone *</label>
+          <input type="tel" id="patientPhone" placeholder="(00) 00000-0000">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="patientEmail" placeholder="opcional">
+        </div>
+        <div class="form-group">
+          <label>Valor Padrão da Consulta (R$)</label>
+          <input type="number" id="patientValue" step="0.01" placeholder="0,00">
+        </div>
+      </div>
+      
+      <div id="patientTabFinanceiro" class="patient-modal-content">
+        <div class="summary-cards" style="grid-template-columns:1fr 1fr">
+          <div class="summary-card green"><h3 id="patientPaid">R$ 0,00</h3><p>Pago</p></div>
+          <div class="summary-card red"><h3 id="patientPending">R$ 0,00</h3><p>Pendente</p></div>
+        </div>
+        <div style="margin-bottom:15px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-whatsapp" onclick="sendPendingSessionsWhatsApp()" id="btnCobrarSelecionadasPatient" style="display:none">📱 Cobrar Selecionadas</button>
+          <button class="btn btn-pdf" onclick="generateReceiptPDF()" id="btnGerarRecibo" style="display:none">📕 Gerar Recibo PDF</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAllSessions" onchange="toggleAllSessions()"></th>
+                <th>Data</th>
+                <th>Serviço</th>
+                <th>Valor</th>
+                <th>Forma Pag.</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="patientFinanceTable"></tbody>
+          </table>
+        </div>
+      </div>
+      
+      <div id="patientTabEvolucao" class="patient-modal-content">
+        <div class="form-group">
+          <label>Nova Evolução / Anotação</label>
+          <textarea id="newEvolution" rows="4" placeholder="Descreva a evolução do paciente..."></textarea>
+          <button class="btn btn-primary" onclick="addEvolution()" style="margin-top:10px;width:100%">💾 Salvar Evolução</button>
+        </div>
+        <div id="evolutionsList" class="evolution-list"></div>
+      </div>
+      
+      <div id="patientTabRelatorio" class="patient-modal-content">
+        <div class="form-group">
+          <label>Mês/Ano do Relatório</label>
+          <input type="month" id="reportMonthPatient">
+        </div>
+        <div class="checkbox-container">
+          <input type="checkbox" id="includeEvolution" checked>
+          <label for="includeEvolution">Incluir evolução no relatório</label>
+        </div>
+        <button class="btn btn-primary" onclick="generatePatientReport()" style="width:100%;margin-bottom:15px">📄 Gerar Relatório</button>
+        <div id="reportContainer" style="display:none">
+          <div class="report-box" id="reportContent"></div>
+          <div style="display:flex;gap:10px;margin-top:15px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="copyReport()">📋 Copiar Texto</button>
+            <button class="btn btn-whatsapp" onclick="sendReportWhatsApp()">📱 WhatsApp</button>
+            <button class="btn btn-pdf" onclick="generatePDFReport()">📕 Gerar PDF</button>
+            <button class="btn btn-pdf" onclick="generatePatientAppointmentsPDF()" style="background:#805ad5">📋 PDF Agendamentos</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer-actions">
+        <button class="btn-delete-patient" id="btnDeletePatient" onclick="deletePatient()" style="display:none">🗑 Excluir Paciente</button>
+        <button class="btn-save-patient" onclick="savePatient()">💾 Salvar Paciente</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal" id="expenseModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Nova Despesa</h3>
+        <button class="close-btn" onclick="closeModal('expenseModal')">&times;</button>
+      </div>
+      <div class="form-group">
+        <label>Data *</label>
+        <input type="date" id="expenseDate">
+      </div>
+      <div class="form-group">
+        <label>Descrição *</label>
+        <input type="text" id="expenseDesc" placeholder="Ex: Material de escritório">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="expenseCategory">
+          <option value="material">Material</option>
+          <option value="aluguel">Aluguel</option>
+          <option value="servicos">Serviços</option>
+          <option value="outros">Outros</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input type="number" id="expenseValue" step="0.01" placeholder="0,00">
+      </div>
+      <button class="btn btn-primary" onclick="saveExpense()">💾 Salvar Despesa</button>
+    </div>
+  </div>
+  
+  <!-- Modal de Desbloqueio por PIN -->
+  <div class="modal" id="pinUnlockModal">
+    <div class="modal-content pin-modal-content">
+      <div class="modal-header" style="justify-content:center;border-bottom:none;padding-bottom:0">
+        <h3>🔒 Área Protegida</h3>
+      </div>
+      <p class="pin-info">Digite seu PIN de 4 dígitos para acessar<br>Dashboard, Financeiro, Fluxo de Caixa e Relatórios</p>
+      
+      <div class="pin-display" id="pinDisplay">••••</div>
+      
+      <div class="pin-keypad">
+        <button class="pin-key" onclick="enterPinDigit('1')">1</button>
+        <button class="pin-key" onclick="enterPinDigit('2')">2</button>
+        <button class="pin-key" onclick="enterPinDigit('3')">3</button>
+        <button class="pin-key" onclick="enterPinDigit('4')">4</button>
+        <button class="pin-key" onclick="enterPinDigit('5')">5</button>
+        <button class="pin-key" onclick="enterPinDigit('6')">6</button>
+        <button class="pin-key" onclick="enterPinDigit('7')">7</button>
+        <button class="pin-key" onclick="enterPinDigit('8')">8</button>
+        <button class="pin-key" onclick="enterPinDigit('9')">9</button>
+        <button class="pin-key clear" onclick="clearPin()">C</button>
+        <button class="pin-key" onclick="enterPinDigit('0')">0</button>
+        <button class="pin-key delete" onclick="deletePinDigit()">⌫</button>
+      </div>
+      
+      <div class="pin-error" id="pinError">PIN incorreto. Tente novamente.</div>
+      
+      <button class="btn btn-primary" onclick="verifyPin()" style="width:100%;margin-top:20px">🔓 Desbloquear</button>
+      <button class="btn btn-danger" onclick="cancelPinUnlock()" style="width:100%;margin-top:10px">Cancelar</button>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p><strong>ASM Gestão Clínica</strong></p>
+    <p>© 2024 Dra. Andresa Augusto - Todos os direitos reservados</p>
+    <p>Proibida reprodução sem autorização</p>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDAP8Krf1QYRUf2VmgeGRXL6eoceVcDnp4",
+  authDomain: "asm-gestao-clinica.firebaseapp.com",
+  databaseURL: "https://asm-gestao-clinica-default-rtdb.firebaseio.com",
+  projectId: "asm-gestao-clinica",
+  storageBucket: "asm-gestao-clinica.firebasestorage.app",
+  messagingSenderId: "846179775289",
+  appId: "1:846179775289:web:b914c4e024b1fb13a66ee8"
+};
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+let currentUserCPF = '';
+let currentActivationCode = '';
+let userDataPath = '';
+let currentUserId = null;
+let isAdmin = false;
+let currentUserRole = 'terapeuta';
+let config = {};
+let patients = [];
+let appointments = [];
+let evolutions = [];
+let expenses = [];
+let consultationTypes = [];
+let currentDate = new Date();
+let currentPatientId = null;
+let currentApptId = null;
+let currentReport = '';
+let selectedSessions = new Set();
+let selectedFinancial = new Set();
+let clinicUsers = [];
+let clinicConfig = [];
+let currentUserTypeSelection = 'terapeuta';
+let selectedPaidSessions = new Set();
+
+// Variáveis para controle de PIN
+let currentPin = '';
+let targetSection = '';
+let pinVerified = false;
+let pinVerifiedTime = null;
+const PIN_VALIDITY_MINUTES = 30; // PIN válido por 30 minutos
+
+// Configuração de cores para terapeutas
+const therapistColors = ['green', 'orange', 'yellow', 'blue', 'pink', 'red'];
+let calendarViewMode = 'month'; // 'month' ou 'week'
+
+const professionConfig = {
+  fisioterapia: { name: 'Fisioterapia', registry: 'CREFITO', placeholder: '00 0000 F' },
+  medicina: { name: 'Medicina', registry: 'CRM', placeholder: '00 0000' },
+  nutricao: { name: 'Nutrição', registry: 'CRN', placeholder: '00 0000' },
+  psicologia: { name: 'Psicologia', registry: 'CRP', placeholder: '00 0000' },
+  psicopedagogia: { name: 'Psicopedagogia', registry: 'CRP/CREFITO', placeholder: '00 0000' },
+  fonoaudiologia: { name: 'Fonoaudiologia', registry: 'CREFONO', placeholder: '00 0000 F' },
+  terapia_ocupacional: { name: 'Terapia Ocupacional', registry: 'CREFITO', placeholder: '00 0000 TO' },
+  estetica: { name: 'Estética', registry: 'COREN/CREFITO', placeholder: '00 0000' },
+  enfermagem: { name: 'Enfermagem', registry: 'COREN', placeholder: '00 0000' },
+  odontologia: { name: 'Odontologia', registry: 'CRO', placeholder: '00 0000' },
+  educacao_fisica: { name: 'Educação Física', registry: 'CREF', placeholder: '00 0000' }
+};
+
+const defaultConsultationTypes = [
+  { id: 'consulta', name: 'Consulta', value: 150 },
+  { id: 'avaliacao', name: 'Avaliação', value: 200 },
+  { id: 'retorno', name: 'Retorno', value: 100 }
+];
+
+window.onload = function() {
+  const savedCPF = localStorage.getItem('asm_user_cpf');
+  const savedCode = localStorage.getItem('asm_activation_code');
+  
+  if (savedCPF && savedCode) {
+    currentUserCPF = savedCPF;
+    currentActivationCode = savedCode;
+    userDataPath = 'clinics/' + currentActivationCode;
+    
+    const savedUserId = localStorage.getItem('asm_user_id');
+    if (savedUserId) {
+      currentUserId = savedUserId;
+      loadDataFromFirebase();
+    } else {
+      checkExistingUsers();
+    }
+  }
+};
+
+function formatCPF(cpf) {
+  cpf = cpf.replace(/\D/g, '');
+  if (cpf.length <= 11) {
+    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+    cpf = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+    cpf = cpf.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  }
+  return cpf;
+}
+
+function formatCPFCNPJ(input) {
+  let value = input.value.replace(/\D/g, '');
+  if (value.length <= 11) {
+    // CPF
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+  } else {
+    // CNPJ
+    value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+    value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+    value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+  }
+  input.value = value;
+}
+
+document.getElementById('userCPF')?.addEventListener('input', function(e) {
+  e.target.value = formatCPF(e.target.value);
+});
+
+async function activateSystem() {
+  const cpf = document.getElementById('userCPF').value.trim();
+  const code = document.getElementById('activationCode').value.toUpperCase().trim();
+  const errorMsg = document.getElementById('activationError');
+  const loading = document.getElementById('activationLoading');
+  const btn = document.getElementById('activateBtn');
+  
+  errorMsg.style.display = 'none';
+  document.getElementById('activationSuccess').style.display = 'none';
+  
+  const cpfNumbers = cpf.replace(/\D/g, '');
+  if (cpfNumbers.length !== 11) {
+    errorMsg.textContent = 'CPF inválido! Digite os 11 números.';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  
+  if (!code || code.length < 8 || !code.startsWith('AA')) {
+    errorMsg.textContent = 'Código inválido! Use o formato AA000000';
+    errorMsg.style.display = 'block';
+    return;
+  }
+  
+  loading.style.display = 'block';
+  btn.disabled = true;
+  
+  try {
+    const codeRef = database.ref('activationCodes/' + code);
+    const snapshot = await codeRef.once('value');
+    
+    if (!snapshot.exists()) {
+      errorMsg.textContent = 'Código de ativação não encontrado!';
+      errorMsg.style.display = 'block';
+    } else {
+      const codeData = snapshot.val();
+      
+      if (codeData.used && codeData.cpf !== cpfNumbers) {
+        await logBreachAttempt(code, cpfNumbers, codeData.cpf);
+        errorMsg.textContent = 'Este código já foi utilizado por outro CPF!';
+        errorMsg.style.display = 'block';
+      } else {
+        if (!codeData.used) {
+          await codeRef.update({
+            used: true,
+            cpf: cpfNumbers,
+            activatedAt: new Date().toISOString()
+          });
+        }
+        
+        currentUserCPF = cpf;
+        currentActivationCode = code;
+        userDataPath = 'clinics/' + code;
+        
+        localStorage.setItem('asm_user_cpf', cpf);
+        localStorage.setItem('asm_activation_code', code);
+        
+        document.getElementById('activationSuccess').style.display = 'block';
+        setTimeout(() => {
+          checkExistingUsers();
+        }, 1000);
+      }
+    }
+  } catch (error) {
+    errorMsg.textContent = 'Erro de conexão: ' + error.message;
+    errorMsg.style.display = 'block';
+  } finally {
+    loading.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+async function logBreachAttempt(code, attemptedCPF, originalCPF) {
+  const attemptData = {
+    code: code,
+    attemptedCPF: attemptedCPF,
+    originalCPF: originalCPF,
+    timestamp: new Date().toISOString(),
+    userAgent: navigator.userAgent
+  };
+  await database.ref('breachAttempts').push(attemptData);
+}
+
+async function checkExistingUsers() {
+  const snapshot = await database.ref(userDataPath + '/users').once('value');
+  const users = snapshot.val() || {};
+  
+  clinicUsers = Object.entries(users).map(([id, data]) => ({id, ...data}));
+  
+  if (clinicUsers.length === 0) {
+    const newUserId = 'user_' + Date.now();
+    const defaultUser = {
+      name: 'Profissional',
+      profession: '',
+      registry: '',
+      pix: '',
+      role: 'terapeuta',
+      createdAt: new Date().toISOString()
+    };
+    await database.ref(userDataPath + '/users/' + newUserId).set(defaultUser);
+    currentUserId = newUserId;
+    localStorage.setItem('asm_user_id', newUserId);
+    loadDataFromFirebase();
+  } else if (clinicUsers.length === 1) {
+    currentUserId = clinicUsers[0].id;
+    localStorage.setItem('asm_user_id', currentUserId);
+    loadDataFromFirebase();
+  } else {
+    currentUserId = clinicUsers[0].id;
+    localStorage.setItem('asm_user_id', currentUserId);
+    loadDataFromFirebase();
+  }
+}
+
+async function loadDataFromFirebase() {
+  try {
+    const clinicSnapshot = await database.ref(userDataPath).once('value');
+    const clinicData = clinicSnapshot.val() || {};
+    
+    appointments = clinicData.appointments || [];
+    patients = clinicData.patients || [];
+    clinicConfig = clinicData.config || {};
+    
+    const userSnapshot = await database.ref(userDataPath + '/users/' + currentUserId).once('value');
+    const userData = userSnapshot.val() || {};
+    
+    currentUserRole = userData.role || 'terapeuta';
+    
+    config = {
+      name: userData.name || '',
+      profession: userData.profession || '',
+      registry: userData.registry || '',
+      pix: userData.pix || '',
+      cpf: userData.cpf || '',
+      role: currentUserRole,
+      clinic: clinicConfig.clinicName || 'ASM Saúde',
+      pin: userData.pin || ''
+    };
+    
+    const userPrivateSnapshot = await database.ref(userDataPath + '/users/' + currentUserId + '/private').once('value');
+    const userPrivate = userPrivateSnapshot.val() || {};
+    
+    evolutions = userPrivate.evolutions || [];
+    consultationTypes = userPrivate.consultationTypes || defaultConsultationTypes;
+    expenses = userPrivate.expenses || [];
+    
+    const allUsersSnapshot = await database.ref(userDataPath + '/users').once('value');
+    const allUsers = allUsersSnapshot.val() || {};
+    clinicUsers = Object.entries(allUsers).map(([id, data]) => ({id, ...data}));
+    
+    showMainSystem();
+  } catch (error) {
+    console.error('Erro ao carregar dados:', error);
+    showMainSystem();
+  }
+}
+
+async function saveDataToFirebase() {
+  try {
+    const clinicData = {
+      appointments: appointments,
+      patients: patients,
+      config: clinicConfig,
+      lastUpdate: new Date().toISOString()
+    };
+    await database.ref(userDataPath).update(clinicData);
+    
+    const userData = {
+      name: config.name,
+      profession: config.profession,
+      registry: config.registry,
+      pix: config.pix,
+      cpf: config.cpf,
+      role: currentUserRole,
+      pin: config.pin || '',
+      lastUpdate: new Date().toISOString()
+    };
+    await database.ref(userDataPath + '/users/' + currentUserId).update(userData);
+    
+    const userPrivate = {
+      evolutions: evolutions,
+      consultationTypes: consultationTypes,
+      expenses: expenses,
+      lastUpdate: new Date().toISOString()
+    };
+    await database.ref(userDataPath + '/users/' + currentUserId + '/private').set(userPrivate);
+    
+    return true;
+  } catch (error) {
+    alert('Erro ao salvar dados: ' + error.message);
+    return false;
+  }
+}
+
+function showMainSystem() {
+  document.getElementById('welcomeScreen').style.display = 'none';
+  document.getElementById('mainSystem').style.display = 'block';
+  document.getElementById('displayCode').textContent = currentActivationCode;
+  
+  applyRoleRestrictions();
+  initializeApp();
+}
+
+function applyRoleRestrictions() {
+  const navButtons = document.querySelectorAll('.nav button');
+  const roleConfigGroup = document.getElementById('roleConfigGroup');
+  
+  if (currentUserRole === 'secretaria') {
+    navButtons.forEach(btn => {
+      const onclick = btn.getAttribute('onclick');
+      if (onclick && (onclick.includes('financeiro') || onclick.includes('fluxo') || onclick.includes('relatorios') || onclick.includes('dashboard'))) {
+        btn.style.display = 'none';
+      }
+    });
+    
+    if (roleConfigGroup) roleConfigGroup.style.display = 'none';
+  } else {
+    navButtons.forEach(btn => btn.style.display = 'inline-block');
+    if (roleConfigGroup) roleConfigGroup.style.display = 'block';
+  }
+}
+
+function logout() {
+  localStorage.clear();
+  pinVerified = false;
+  pinVerifiedTime = null;
+  location.reload();
+}
+
+async function initializeApp() {
+  loadConfig();
+  updateHeader();
+  updateUserBar();
+  renderColorLegend();
+  renderCalendar();
+  renderPatientsList();
+  updateFinancialSummary();
+  loadPatientSelect();
+  loadProfessionalSelect();
+  loadRecurrenceSelect();
+  loadCancelRecurrenceSelect();
+  renderConsultationTypes();
+  updateDashboard();
+  checkBirthdays();
+  
+  const today = new Date().toISOString().slice(0, 7);
+  document.getElementById('cashFlowMonth').value = today;
+  document.getElementById('reportMonth').value = today;
+}
+
+// FUNÇÃO PARA VERIFICAR ANIVERSARIANTES
+function checkBirthdays() {
+  const today = new Date();
+  const currentMonth = today.getMonth() + 1;
+  const currentDay = today.getDate();
+  
+  const birthdayPatients = patients.filter(p => {
+    if (!p.birthDate) return false;
+    const birthDate = new Date(p.birthDate);
+    return (birthDate.getMonth() + 1) === currentMonth;
+  }).sort((a, b) => {
+    const dateA = new Date(a.birthDate);
+    const dateB = new Date(b.birthDate);
+    return dateA.getDate() - dateB.getDate();
+  });
+  
+  const birthdayCard = document.getElementById('birthdayCard');
+  const birthdayList = document.getElementById('birthdayList');
+  
+  if (birthdayPatients.length === 0) {
+    birthdayCard.style.display = 'none';
+    return;
+  }
+  
+  birthdayCard.style.display = 'block';
+  birthdayList.innerHTML = '';
+  
+  birthdayPatients.forEach(p => {
+    const birthDate = new Date(p.birthDate);
+    const day = birthDate.getDate();
+    const isToday = day === currentDay;
+    
+    const item = document.createElement('div');
+    item.className = 'birthday-item';
+    item.innerHTML = `
+      <div class="icon">${isToday ? '🎂' : '🎈'}</div>
+      <div class="info">
+        <div class="name">${p.name} ${isToday ? '(Hoje!)' : ''}</div>
+        <div class="date">Dia ${day}</div>
+      </div>
+      <button class="btn-whatsapp-small" onclick="sendBirthdayMessage('${p.id}')">📱 Parabéns</button>
+    `;
+    birthdayList.appendChild(item);
+  });
+}
+
+function sendBirthdayMessage(patientId) {
+  const patient = patients.find(p => p.id === patientId);
+  const sig = getProfessionalSignature();
+  
+  let msg = `Olá ${patient.name}! 🎉🎂\n\n`;
+  msg += `Feliz aniversário! 🥳✨\n\n`;
+  msg += `Que seu dia seja repleto de alegria, saúde e momentos especiais ao lado de quem você ama! 💚\n\n`;
+  msg += `Aproveite seu dia! 🎈🎁\n\n`;
+  
+  if (sig.name) msg += `Atenciosamente,\n${sig.name}`;
+  if (sig.registry) msg += `\n${sig.registry}`;
+  
+  window.open('https://wa.me/55' + patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function updateRegistryLabel() {
+  const profession = document.getElementById('configProfession').value;
+  const label = document.getElementById('registryLabel');
+  const input = document.getElementById('configRegistry');
+  
+  if (profession && professionConfig[profession]) {
+    const prof = professionConfig[profession];
+    label.textContent = prof.registry + ' *';
+    input.placeholder = prof.placeholder;
+  } else {
+    label.textContent = 'Registro Profissional *';
+    input.placeholder = '00000';
+  }
+}
+
+function updateNewUserRegistryLabel() {
+  const profession = document.getElementById('newUserProfession').value;
+  const label = document.getElementById('newUserRegistryLabel');
+  const input = document.getElementById('newUserRegistry');
+  
+  if (profession && professionConfig[profession]) {
+    const prof = professionConfig[profession];
+    label.textContent = prof.registry + ' *';
+    input.placeholder = prof.placeholder;
+  } else {
+    label.textContent = 'Registro Profissional *';
+    input.placeholder = '00000';
+  }
+}
+
+function loadConfig() {
+  document.getElementById('configProfession').value = config.profession || '';
+  document.getElementById('configName').value = config.name || '';
+  document.getElementById('configRegistry').value = config.registry || '';
+  document.getElementById('configPix').value = config.pix || '';
+  document.getElementById('configClinic').value = config.clinic || 'ASM Saúde';
+  document.getElementById('configProfCPF').value = config.cpf || '';
+  const roleSelect = document.getElementById('configRole');
+  if (roleSelect) roleSelect.value = currentUserRole;
+  updateRegistryLabel();
+}
+
+async function saveConfig() {
+  const profession = document.getElementById('configProfession').value;
+  if (!profession) { alert('Selecione sua profissão!'); return; }
+  
+  const roleSelect = document.getElementById('configRole');
+  if (roleSelect && currentUserRole !== 'secretaria') {
+    currentUserRole = roleSelect.value;
+  }
+  
+  config = {
+    profession: profession,
+    name: document.getElementById('configName').value.trim(),
+    cpf: document.getElementById('configProfCPF').value.trim(),
+    registry: document.getElementById('configRegistry').value.trim(),
+    pix: document.getElementById('configPix').value.trim(),
+    role: currentUserRole,
+    clinic: document.getElementById('configClinic').value.trim() || 'ASM Saúde',
+    pin: config.pin || ''
+  };
+  
+  if (!config.name || !config.registry || !config.cpf) { 
+    alert('Preencha nome, CPF/CNPJ e registro profissional!'); 
+    return; 
+  }
+  
+  clinicConfig.clinicName = config.clinic;
+  
+  await saveDataToFirebase();
+  updateHeader();
+  updateUserBar();
+  applyRoleRestrictions();
+  alert('Configurações salvas com sucesso!');
+}
+
+async function saveClinicConfig() {
+  clinicConfig.clinicName = document.getElementById('configClinic').value.trim() || 'ASM Saúde';
+  config.clinic = clinicConfig.clinicName;
+  await saveDataToFirebase();
+  alert('Dados da clínica salvos!');
+}
+
+function updateHeader() {
+  const subtitle = document.getElementById('headerSubtitle');
+  const profConfig = professionConfig[config.profession];
+  
+  let roleLabel = currentUserRole === 'secretaria' ? ' (Secretária)' : '';
+  
+  if (profConfig) {
+    subtitle.textContent = (config.name ? config.name + ' - ' : '') + profConfig.name + roleLabel;
+  } else {
+    subtitle.textContent = (config.name || 'Configure seus dados') + roleLabel;
+  }
+}
+
+function updateUserBar() {
+  document.getElementById('currentUserName').textContent = config.name || 'Profissional';
+  document.getElementById('currentUserRegistry').textContent = config.registry || '---';
+  
+  const profConfig = professionConfig[config.profession];
+  document.getElementById('currentUserSpecialty').textContent = profConfig ? profConfig.name : '---';
+  
+  const dropdownContainer = document.getElementById('userDropdownContainer');
+  if (clinicUsers.length > 1) {
+    dropdownContainer.style.display = 'inline-block';
+    renderUserDropdown();
+  } else {
+    dropdownContainer.style.display = 'none';
+  }
+}
+
+function renderUserDropdown() {
+  const menu = document.getElementById('userDropdownMenu');
+  menu.innerHTML = '';
+  
+  clinicUsers.forEach(user => {
+    const profConfig = professionConfig[user.profession] || { name: user.profession || 'Profissional', registry: 'Registro' };
+    const isCurrent = user.id === currentUserId;
+    const roleLabel = user.role === 'secretaria' ? ' (Secretária)' : '';
+    
+    const item = document.createElement('div');
+    item.className = 'user-dropdown-item' + (isCurrent ? ' current' : '');
+    item.onclick = () => { if (!isCurrent) switchToUser(user.id); };
+    
+    item.innerHTML = `
+      <div class="user-info">
+        <div class="user-name">${user.name}${isCurrent ? ' (Atual)' : ''}${roleLabel}</div>
+        <div class="user-prof">${profConfig.name} ${user.registry ? '- ' + profConfig.registry + ' ' + user.registry : ''}</div>
+      </div>
+      ${isCurrent ? '<span class="check-mark">✓</span>' : ''}
+    `;
+    
+    menu.appendChild(item);
+  });
+  
+  const canAddMore = canAddUser();
+  if (canAddMore.allowed) {
+    const addItem = document.createElement('div');
+    addItem.className = 'user-dropdown-item add-user-item';
+    addItem.onclick = () => { window.location.href = '#configuracoes'; showSection('configuracoes'); showConfigTab('usuarios'); toggleUserDropdown(); };
+    addItem.innerHTML = `
+      <div class="user-info">
+        <div class="user-name" style="color:#38a169">+ Cadastrar Novo Usuário</div>
+      </div>
+    `;
+    menu.appendChild(addItem);
+  }
+}
+
+function toggleUserDropdown() {
+  document.getElementById('userDropdownMenu').classList.toggle('show');
+}
+
+window.onclick = function(event) {
+  if (!event.target.matches('.user-dropdown button') && !event.target.closest('.user-dropdown')) {
+    const dropdowns = document.getElementsByClassName('user-dropdown-content');
+    for (let i = 0; i < dropdowns.length; i++) {
+      dropdowns[i].classList.remove('show');
+    }
+  }
+};
+
+function switchToUser(userId) {
+  if (confirm('Deseja trocar para este usuário? Os dados não salvos serão perdidos.')) {
+    currentUserId = userId;
+    localStorage.setItem('asm_user_id', userId);
+    pinVerified = false;
+    pinVerifiedTime = null;
+    location.reload();
+  }
+}
+
+function getProfessionalSignature() {
+  const profConfig = professionConfig[config.profession] || { registry: 'Registro' };
+  return {
+    name: config.name || 'Profissional',
+    registry: config.registry ? profConfig.registry + ' ' + config.registry : '',
+    clinic: config.clinic || 'ASM Saúde',
+    pix: config.pix || ''
+  };
+}
+
+function showConfigTab(tab) {
+  document.querySelectorAll('#configuracoes .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#configuracoes .tab-content').forEach(t => t.classList.remove('active'));
+  
+  event.target.classList.add('active');
+  document.getElementById('config' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  
+  if (tab === 'usuarios') renderUsersList();
+  if (tab === 'tipos') renderConsultationTypes();
+}
+
+function canAddUser() {
+  const terapeutas = clinicUsers.filter(u => (u.role || 'terapeuta') === 'terapeuta');
+  const secretarias = clinicUsers.filter(u => u.role === 'secretaria');
+  
+  const totalUsers = clinicUsers.length;
+  
+  if (totalUsers >= 7) {
+    return { allowed: false, reason: 'total', message: 'Limite máximo de 7 usuários atingido.' };
+  }
+  
+  if (terapeutas.length >= 6 && secretarias.length >= 1) {
+    return { allowed: false, reason: 'both', message: 'Limite de 6 terapeutas e 1 secretária atingido.' };
+  }
+  
+  return { 
+    allowed: true, 
+    terapeutasCount: terapeutas.length, 
+    secretariasCount: secretarias.length,
+    canAddTerapeuta: terapeutas.length < 6,
+    canAddSecretaria: secretarias.length < 1
+  };
+}
+
+async function renderUsersList() {
+  const snapshot = await database.ref(userDataPath + '/users').once('value');
+  const users = snapshot.val() || {};
+  clinicUsers = Object.entries(users).map(([id, data]) => ({id, ...data}));
+  
+  const container = document.getElementById('usersListContainer');
+  container.innerHTML = '';
+  
+  clinicUsers.forEach(user => {
+    const profConfig = professionConfig[user.profession] || { name: user.profession || 'Não definido', registry: 'Registro' };
+    const isCurrent = user.id === currentUserId;
+    const roleLabel = user.role === 'secretaria' ? ' (Secretária)' : '';
+    
+    const card = document.createElement('div');
+    card.className = 'user-card' + (isCurrent ? ' selected' : '');
+    
+    let html = '';
+    if (!isCurrent) {
+      html += `<button class="delete-btn" onclick="event.stopPropagation();deleteUser('${user.id}')" title="Excluir usuário">🗑️</button>`;
+    }
+    
+    html += `
+      <div class="avatar">${isCurrent ? '✓' : '👤'}</div>
+      <div class="name">${user.name}${isCurrent ? ' (Você)' : ''}${roleLabel}</div>
+      <div class="profession">${profConfig.name}</div>
+      <div class="registry">${user.registry ? profConfig.registry + ' ' + user.registry : 'Sem registro'}</div>
+    `;
+    
+    card.innerHTML = html;
+    
+    if (!isCurrent) {
+      card.onclick = () => switchToUser(user.id);
+    }
+    
+    container.appendChild(card);
+  });
+  
+  const canAdd = canAddUser();
+  if (canAdd.allowed) {
+    const addCard = document.createElement('div');
+    addCard.className = 'add-user-card';
+    addCard.innerHTML = `<div class="icon">➕</div><span>Cadastrar Usuário</span>`;
+    addCard.onclick = showUserForm;
+    container.appendChild(addCard);
+    document.getElementById('userLimitMsg').style.display = 'none';
+  } else {
+    document.getElementById('userLimitMsg').textContent = canAdd.message;
+    document.getElementById('userLimitMsg').style.display = 'block';
+  }
+}
+
+async function deleteUser(userId) {
+  if (!confirm('Tem certeza que deseja excluir este usuário?\n\n⚠️ Todos os dados financeiros, relatórios e evoluções deste usuário serão permanentemente removidos!\n\nEsta ação não pode ser desfeita.')) {
+    return;
+  }
+  
+  if (clinicUsers.length <= 1) {
+    alert('Não é possível excluir o único usuário da clínica.');
+    return;
+  }
+  
+  try {
+    await database.ref(userDataPath + '/users/' + userId).remove();
+    
+    if (userId === currentUserId) {
+      const remainingUsers = clinicUsers.filter(u => u.id !== userId);
+      if (remainingUsers.length > 0) {
+        currentUserId = remainingUsers[0].id;
+        localStorage.setItem('asm_user_id', currentUserId);
+      }
+    }
+    
+    alert('Usuário excluído com sucesso!');
+    renderUsersList();
+    updateUserBar();
+  } catch (error) {
+    alert('Erro ao excluir usuário: ' + error.message);
+  }
+}
+
+function selectUserType(type) {
+  const canAdd = canAddUser();
+  
+  if (type === 'terapeuta' && !canAdd.canAddTerapeuta) {
+    alert('Limite de 6 terapeutas atingido. Você só pode cadastrar Secretária.');
+    return;
+  }
+  
+  if (type === 'secretaria' && !canAdd.canAddSecretaria) {
+    alert('Já existe uma secretária cadastrada. Limite de 1 secretária.');
+    return;
+  }
+  
+  currentUserTypeSelection = type;
+  document.getElementById('newUserRole').value = type;
+  
+  document.querySelectorAll('.user-type-option').forEach(opt => opt.classList.remove('selected'));
+  document.getElementById('type' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('selected');
+  
+  const profGroup = document.getElementById('newUserProfessionGroup');
+  const regGroup = document.getElementById('newUserRegistryGroup');
+  const pixGroup = document.getElementById('newUserPixGroup');
+  const pinGroup = document.getElementById('newUserPinGroup');
+  
+  if (type === 'secretaria') {
+    profGroup.style.display = 'none';
+    regGroup.style.display = 'none';
+    pixGroup.style.display = 'none';
+    pinGroup.style.display = 'none';
+  } else {
+    profGroup.style.display = 'block';
+    regGroup.style.display = 'block';
+    pixGroup.style.display = 'block';
+    pinGroup.style.display = 'block';
+  }
+}
+
+function updateUserTypeSelector() {
+  const canAdd = canAddUser();
+  
+  const terapeutaOption = document.getElementById('typeTerapeuta');
+  const secretariaOption = document.getElementById('typeSecretaria');
+  
+  if (!canAdd.canAddTerapeuta) {
+    terapeutaOption.classList.add('disabled');
+    terapeutaOption.onclick = null;
+  } else {
+    terapeutaOption.classList.remove('disabled');
+    terapeutaOption.onclick = () => selectUserType('terapeuta');
+  }
+  
+  if (!canAdd.canAddSecretaria) {
+    secretariaOption.classList.add('disabled');
+    secretariaOption.onclick = null;
+  } else {
+    secretariaOption.classList.remove('disabled');
+    secretariaOption.onclick = () => selectUserType('secretaria');
+  }
+  
+  const limitWarning = document.getElementById('limitWarning');
+  const limitInfo = document.getElementById('limitInfo');
+  
+  if (!canAdd.allowed) {
+    limitWarning.textContent = canAdd.message;
+    limitWarning.style.display = 'block';
+    limitInfo.style.display = 'none';
+  } else {
+    limitWarning.style.display = 'none';
+    let infoText = '';
+    if (canAdd.canAddTerapeuta && canAdd.canAddSecretaria) {
+      infoText = `Você pode cadastrar até ${6 - canAdd.terapeutasCount} terapeuta(s) e ${1 - canAdd.secretariasCount} secretária.`;
+    } else if (canAdd.canAddTerapeuta) {
+      infoText = `Limite de secretária atingido. Você pode cadastrar mais ${6 - canAdd.terapeutasCount} terapeuta(s).`;
+    } else if (canAdd.canAddSecretaria) {
+      infoText = `Limite de terapeutas atingido. Você pode cadastrar ${1 - canAdd.secretariasCount} secretária.`;
+    }
+    limitInfo.textContent = infoText;
+    limitInfo.style.display = 'block';
+  }
+}
+
+function showUserForm() {
+  const canAdd = canAddUser();
+  if (!canAdd.allowed) {
+    alert(canAdd.message);
+    return;
+  }
+  
+  document.getElementById('userFormContainer').style.display = 'block';
+  document.getElementById('userFormTitle').textContent = 'Novo Usuário';
+  document.getElementById('editingUserId').value = '';
+  document.getElementById('newUserName').value = '';
+  document.getElementById('newUserProfession').value = '';
+  document.getElementById('newUserRegistry').value = '';
+  document.getElementById('newUserPix').value = '';
+  document.getElementById('newUserPin').value = '';
+  
+  updateUserTypeSelector();
+  
+  if (canAdd.canAddTerapeuta) {
+    selectUserType('terapeuta');
+  } else if (canAdd.canAddSecretaria) {
+    selectUserType('secretaria');
+  }
+  
+  updateNewUserRegistryLabel();
+}
+
+function cancelUserForm() {
+  document.getElementById('userFormContainer').style.display = 'none';
+}
+
+async function saveUser() {
+  const name = document.getElementById('newUserName').value.trim();
+  const role = document.getElementById('newUserRole').value;
+  
+  if (!name) {
+    alert('Preencha o nome!');
+    return;
+  }
+  
+  const canAdd = canAddUser();
+  if (role === 'terapeuta' && !canAdd.canAddTerapeuta) {
+    alert('Limite de 6 terapeutas atingido!');
+    return;
+  }
+  if (role === 'secretaria' && !canAdd.canAddSecretaria) {
+    alert('Já existe uma secretária cadastrada!');
+    return;
+  }
+  
+  let userData = {
+    name: name,
+    role: role,
+    createdAt: new Date().toISOString()
+  };
+  
+  if (role === 'terapeuta') {
+    const profession = document.getElementById('newUserProfession').value;
+    const registry = document.getElementById('newUserRegistry').value.trim();
+    const pix = document.getElementById('newUserPix').value.trim();
+    const pin = document.getElementById('newUserPin').value.trim();
+    
+    if (!profession || !registry) {
+      alert('Preencha profissão e registro profissional!');
+      return;
+    }
+    
+    if (!pin || pin.length !== 4) {
+      alert('O PIN deve ter exatamente 4 dígitos!');
+      return;
+    }
+    
+    userData.profession = profession;
+    userData.registry = registry;
+    userData.pix = pix;
+    userData.pin = pin;
+  } else {
+    userData.profession = '';
+    userData.registry = '';
+    userData.pix = '';
+  }
+  
+  const newUserId = 'user_' + Date.now();
+  await database.ref(userDataPath + '/users/' + newUserId).set(userData);
+  
+  document.getElementById('userFormContainer').style.display = 'none';
+  renderUsersList();
+  updateUserBar();
+  alert('Usuário cadastrado com sucesso!');
+}
+
+function renderConsultationTypes() {
+  const container = document.getElementById('consultationTypesList');
+  if (!container) return;
+  
+  container.innerHTML = '';
+  consultationTypes.forEach((type, index) => {
+    const div = document.createElement('div');
+    div.className = 'consultation-type-item';
+    div.innerHTML = `
+      <input type="text" placeholder="Nome" value="${type.name}" onchange="updateConsultationType(${index}, 'name', this.value)" style="flex:2">
+      <input type="number" placeholder="Valor" value="${type.value}" onchange="updateConsultationType(${index}, 'value', this.value)" style="flex:1">
+      <button onclick="removeConsultationType(${index})">🗑</button>
+    `;
+    container.appendChild(div);
+  });
+  
+  updateApptTypeSelect();
+}
+
+function updateConsultationType(index, field, value) {
+  if (field === 'value') value = parseFloat(value) || 0;
+  consultationTypes[index][field] = value;
+  saveDataToFirebase();
+  updateApptTypeSelect();
+}
+
+function removeConsultationType(index) {
+  if (consultationTypes.length <= 1) {
+    alert('Mantenha pelo menos um tipo de consulta!');
+    return;
+  }
+  consultationTypes.splice(index, 1);
+  renderConsultationTypes();
+  saveDataToFirebase();
+}
+
+function addConsultationType() {
+  consultationTypes.push({ id: 'custom_' + Date.now(), name: 'Novo Tipo', value: 0 });
+  renderConsultationTypes();
+}
+
+function updateApptTypeSelect() {
+  const selects = ['apptType', 'recType'];
+  selects.forEach(selectId => {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const currentValue = select.value;
+    select.innerHTML = '';
+    consultationTypes.forEach(type => {
+      const opt = document.createElement('option');
+      opt.value = type.id;
+      opt.textContent = type.name + ' (R$ ' + type.value.toFixed(2) + ')';
+      select.appendChild(opt);
+    });
+    if (currentValue) select.value = currentValue;
+  });
+}
+
+function updateApptValue() {
+  const typeId = document.getElementById('apptType').value;
+  const type = consultationTypes.find(t => t.id === typeId);
+  if (type) {
+    document.getElementById('apptValue').value = type.value;
+  }
+}
+
+function updateRecValue() {
+  const typeId = document.getElementById('recType').value;
+  const type = consultationTypes.find(t => t.id === typeId);
+  if (type) {
+    document.getElementById('recValue').value = type.value;
+  }
+}
+
+// Funções para controle de PIN
+function isPinVerificationValid() {
+  if (!pinVerified || !pinVerifiedTime) return false;
+  const now = new Date();
+  const diff = (now - pinVerifiedTime) / (1000 * 60);
+  return diff < PIN_VALIDITY_MINUTES;
+}
+
+function requiresPinVerification(section) {
+  if (currentUserRole === 'secretaria') return false;
+  
+  const protectedAreas = ['dashboard', 'financeiro', 'fluxo', 'relatorios'];
+  return protectedAreas.includes(section);
+}
+
+function showSection(section) {
+  if (requiresPinVerification(section) && !isPinVerificationValid()) {
+    targetSection = section;
+    openPinModal();
+    return;
+  }
+  
+  if (currentUserRole === 'secretaria') {
+    if (section === 'financeiro' || section === 'fluxo' || section === 'relatorios' || section === 'dashboard') {
+      alert('Acesso restrito. Secretária não tem permissão para acessar esta área.');
+      return;
+    }
+  }
+  
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  
+  const sectionEl = document.getElementById(section);
+  if (sectionEl) sectionEl.classList.add('active');
+  
+  const navButtons = document.querySelectorAll('.nav button');
+  navButtons.forEach(btn => {
+    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(section)) {
+      btn.classList.add('active');
+    }
+  });
+  
+  if (section === 'financeiro') { 
+    selectedFinancial.clear(); 
+    renderFinancialTable(); 
+  }
+  if (section === 'fluxo') renderCashFlow();
+  if (section === 'relatorios') renderReports();
+  if (section === 'dashboard') updateDashboard();
+  if (section === 'pacientes') renderPatientsList();
+}
+
+function openPinModal() {
+  currentPin = '';
+  updatePinDisplay();
+  document.getElementById('pinError').style.display = 'none';
+  document.getElementById('pinUnlockModal').classList.add('active');
+}
+
+function closePinModal() {
+  document.getElementById('pinUnlockModal').classList.remove('active');
+  currentPin = '';
+}
+
+function enterPinDigit(digit) {
+  if (currentPin.length < 4) {
+    currentPin += digit;
+    updatePinDisplay();
+  }
+}
+
+function deletePinDigit() {
+  currentPin = currentPin.slice(0, -1);
+  updatePinDisplay();
+}
+
+function clearPin() {
+  currentPin = '';
+  updatePinDisplay();
+}
+
+function updatePinDisplay() {
+  const display = document.getElementById('pinDisplay');
+  if (currentPin.length === 0) {
+    display.textContent = '••••';
+  } else {
+    display.textContent = '•'.repeat(currentPin.length) + '•'.repeat(4 - currentPin.length);
+  }
+}
+
+function verifyPin() {
+  if (currentPin.length !== 4) {
+    document.getElementById('pinError').textContent = 'Digite 4 dígitos';
+    document.getElementById('pinError').style.display = 'block';
+    return;
+  }
+  
+  if (currentPin === config.pin) {
+    pinVerified = true;
+    pinVerifiedTime = new Date();
+    closePinModal();
+    
+    if (targetSection) {
+      const tempTarget = targetSection;
+      targetSection = '';
+      
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+      
+      const sectionEl = document.getElementById(tempTarget);
+      if (sectionEl) sectionEl.classList.add('active');
+      
+      const navButtons = document.querySelectorAll('.nav button');
+      navButtons.forEach(btn => {
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tempTarget)) {
+          btn.classList.add('active');
+        }
+      });
+      
+      if (tempTarget === 'financeiro') { 
+        selectedFinancial.clear(); 
+        renderFinancialTable(); 
+      }
+      if (tempTarget === 'fluxo') renderCashFlow();
+      if (tempTarget === 'relatorios') renderReports();
+      if (tempTarget === 'dashboard') updateDashboard();
+    }
+  } else {
+    document.getElementById('pinError').textContent = 'PIN incorreto. Tente novamente.';
+    document.getElementById('pinError').style.display = 'block';
+    currentPin = '';
+    updatePinDisplay();
+  }
+}
+
+function cancelPinUnlock() {
+  closePinModal();
+  targetSection = '';
+  showSection('agenda');
+}
+
+function renderPatientsList() {
+  const container = document.getElementById('patientsListContainer');
+  const noMsg = document.getElementById('noPatientsMsg');
+  
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  if (patients.length === 0) {
+    container.style.display = 'none';
+    if (noMsg) noMsg.style.display = 'block';
+    return;
+  }
+  
+  container.style.display = 'flex';
+  if (noMsg) noMsg.style.display = 'none';
+  
+  const sortedPatients = [...patients].sort((a, b) => a.name.localeCompare(b.name));
+  
+  sortedPatients.forEach(p => {
+    const patientAppts = appointments.filter(a => 
+      a.patientId === p.id && 
+      !a.cancelled && 
+      a.userId === currentUserId
+    );
+    
+    const pending = patientAppts.filter(a => !a.paid).length;
+    const hasDefaultValue = p.defaultValue && parseFloat(p.defaultValue) > 0;
+    
+    const card = document.createElement('div');
+    card.className = 'patient-card-item';
+    
+    let html = `<button class="delete-patient-btn" onclick="event.stopPropagation();deletePatientFromList('${p.id}')" title="Excluir paciente">🗑️</button>`;
+    html += `<h3>${p.name}</h3><div class="info">`;
+    html += `<span>📱 ${p.phone}</span>`;
+    
+    if (hasDefaultValue) {
+      html += `<span class="value">💰 R$ ${parseFloat(p.defaultValue).toFixed(2)}</span>`;
+    }
+    
+    if (pending > 0) {
+      html += `<span class="pending">⚠️ ${pending} pendente(s)</span>`;
+    }
+    
+    html += `</div>`;
+    
+    card.innerHTML = html;
+    card.onclick = (e) => {
+      if (!e.target.classList.contains('delete-patient-btn')) {
+        openPatientModal(p.id);
+      }
+    };
+    container.appendChild(card);
+  });
+}
+
+async function deletePatientFromList(patientId) {
+  const patient = patients.find(p => p.id === patientId);
+  if (!patient) return;
+  
+  if (!confirm(`Tem certeza que deseja excluir o paciente "${patient.name}"?\n\n⚠️ Esta ação irá:\n• Remover o paciente do cadastro\n• Excluir TODOS os agendamentos deste paciente\n• Remover todas as evoluções\n\nEsta ação não pode ser desfeita!`)) {
+    return;
+  }
+  
+  try {
+    patients = patients.filter(p => p.id !== patientId);
+    appointments = appointments.filter(a => a.patientId !== patientId);
+    
+    for (const user of clinicUsers) {
+      const userEvosSnapshot = await database.ref(userDataPath + '/users/' + user.id + '/private/evolutions').once('value');
+      const userEvos = userEvosSnapshot.val() || [];
+      const filteredEvos = userEvos.filter(e => e.patientId !== patientId);
+      await database.ref(userDataPath + '/users/' + user.id + '/private/evolutions').set(filteredEvos);
+    }
+    
+    if (currentUserId) {
+      const myEvosSnapshot = await database.ref(userDataPath + '/users/' + currentUserId + '/private/evolutions').once('value');
+      evolutions = myEvosSnapshot.val() || [];
+      evolutions = evolutions.filter(e => e.patientId !== patientId);
+    }
+    
+    await saveDataToFirebase();
+    
+    alert('Paciente excluído com sucesso!');
+    renderPatientsList();
+    renderCalendar();
+    updateFinancialSummary();
+    updateDashboard();
+    loadPatientSelect();
+    loadProfessionalSelect();
+    loadRecurrenceSelect();
+    loadCancelRecurrenceSelect();
+    checkBirthdays();
+  } catch (error) {
+    alert('Erro ao excluir paciente: ' + error.message);
+  }
+}
+
+function searchPatients(term) {
+  const container = document.getElementById('patientsListContainer');
+  const noMsg = document.getElementById('noPatientsMsg');
+  const cards = container.querySelectorAll('.patient-card-item');
+  let visibleCount = 0;
+  
+  cards.forEach(card => {
+    const name = card.querySelector('h3').textContent.toLowerCase();
+    const phone = card.querySelector('.info').textContent.toLowerCase();
+    const match = name.includes(term.toLowerCase()) || phone.includes(term.toLowerCase());
+    card.style.display = match ? 'block' : 'none';
+    if (match) visibleCount++;
+  });
+  
+  if (visibleCount === 0 && term) {
+    container.style.display = 'none';
+    if (noMsg) {
+      noMsg.style.display = 'block';
+      noMsg.querySelector('p').textContent = 'Nenhum paciente encontrado para "' + term + '"';
+    }
+  } else {
+    container.style.display = 'flex';
+    if (noMsg) noMsg.style.display = 'none';
+  }
+}
+
+function openPatientModal(patientId) {
+  currentPatientId = patientId;
+  selectedSessions.clear();
+  selectedPaidSessions.clear();
+  
+  document.getElementById('patientId').value = '';
+  document.getElementById('patientName').value = '';
+  document.getElementById('patientCPF').value = '';
+  document.getElementById('patientBirthDate').value = '';
+  document.getElementById('patientPhone').value = '';
+  document.getElementById('patientEmail').value = '';
+  document.getElementById('patientValue').value = '';
+  document.getElementById('newEvolution').value = '';
+  document.getElementById('reportContainer').style.display = 'none';
+  
+  showPatientModalTab('info');
+  
+  if (patientId) {
+    const p = patients.find(x => x.id === patientId);
+    document.getElementById('patientModalTitle').textContent = 'Editar Paciente';
+    document.getElementById('patientId').value = p.id;
+    document.getElementById('patientName').value = p.name;
+    document.getElementById('patientCPF').value = p.cpf || '';
+    document.getElementById('patientBirthDate').value = p.birthDate || '';
+    document.getElementById('patientPhone').value = p.phone;
+    document.getElementById('patientEmail').value = p.email || '';
+    document.getElementById('patientValue').value = p.defaultValue || '';
+    document.getElementById('btnDeletePatient').style.display = 'flex';
+    
+    document.getElementById('reportMonthPatient').value = new Date().toISOString().slice(0, 7);
+  } else {
+    document.getElementById('patientModalTitle').textContent = 'Novo Paciente';
+    document.getElementById('btnDeletePatient').style.display = 'none';
+  }
+  
+  document.getElementById('patientModal').classList.add('active');
+}
+
+function showPatientModalTab(tab) {
+  document.querySelectorAll('.patient-modal-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tabBtn' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  
+  document.querySelectorAll('.patient-modal-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('patientTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  
+  if (tab === 'financeiro') renderPatientFinance();
+  if (tab === 'evolucao') renderEvolutions();
+}
+
+async function savePatient() {
+  const id = document.getElementById('patientId').value;
+  const data = {
+    id: id || Date.now().toString(),
+    name: document.getElementById('patientName').value.trim(),
+    cpf: document.getElementById('patientCPF').value.trim(),
+    birthDate: document.getElementById('patientBirthDate').value,
+    phone: document.getElementById('patientPhone').value.trim(),
+    email: document.getElementById('patientEmail').value.trim(),
+    defaultValue: document.getElementById('patientValue').value
+  };
+  
+  if (!data.name || !data.phone || !data.cpf || !data.birthDate) { 
+    alert('Preencha nome, CPF, data de nascimento e telefone!'); 
+    return; 
+  }
+  
+  if (id) {
+    const idx = patients.findIndex(p => p.id === id);
+    patients[idx] = data;
+  } else { 
+    patients.push(data); 
+  }
+  
+  await saveDataToFirebase();
+  closeModal('patientModal');
+  renderPatientsList();
+  loadPatientSelect();
+  loadRecurrenceSelect();
+  loadCancelRecurrenceSelect();
+  checkBirthdays();
+}
+
+async function deletePatient() {
+  if (!confirm('Tem certeza que deseja excluir este paciente e todos os seus dados?')) return;
+  
+  try {
+    patients = patients.filter(p => p.id !== currentPatientId);
+    appointments = appointments.filter(a => a.patientId !== currentPatientId);
+    
+    for (const user of clinicUsers) {
+      const userEvosSnapshot = await database.ref(userDataPath + '/users/' + user.id + '/private/evolutions').once('value');
+      const userEvos = userEvosSnapshot.val() || [];
+      const filteredEvos = userEvos.filter(e => e.patientId !== currentPatientId);
+      await database.ref(userDataPath + '/users/' + user.id + '/private/evolutions').set(filteredEvos);
+    }
+    
+    if (currentUserId) {
+      const myEvosSnapshot = await database.ref(userDataPath + '/users/' + currentUserId + '/private/evolutions').once('value');
+      evolutions = myEvosSnapshot.val() || [];
+      evolutions = evolutions.filter(e => e.patientId !== currentPatientId);
+    }
+    
+    await saveDataToFirebase();
+    closeModal('patientModal');
+    renderPatientsList();
+    renderCalendar();
+    updateFinancialSummary();
+    updateDashboard();
+    loadPatientSelect();
+    loadProfessionalSelect();
+    loadRecurrenceSelect();
+    loadCancelRecurrenceSelect();
+    checkBirthdays();
+  } catch (error) {
+    alert('Erro ao excluir paciente: ' + error.message);
+  }
+}
+
+function renderPatientFinance() {
+  const patientAppts = appointments.filter(a => 
+    a.patientId === currentPatientId && 
+    !a.cancelled && 
+    a.userId === currentUserId
+  );
+  
+  const paid = patientAppts.filter(a => a.paid).reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  const pending = patientAppts.filter(a => !a.paid).reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  
+  document.getElementById('patientPaid').textContent = 'R$ ' + paid.toFixed(2);
+  document.getElementById('patientPending').textContent = 'R$ ' + pending.toFixed(2);
+  
+  const tbody = document.getElementById('patientFinanceTable');
+  tbody.innerHTML = '';
+  
+  const btnCobrar = document.getElementById('btnCobrarSelecionadasPatient');
+  const btnRecibo = document.getElementById('btnGerarRecibo');
+  
+  if (btnCobrar) {
+    btnCobrar.style.display = selectedSessions.size > 0 ? 'inline-block' : 'none';
+    btnCobrar.textContent = `📱 Cobrar Selecionadas (${selectedSessions.size})`;
+  }
+  
+  if (btnRecibo) {
+    btnRecibo.style.display = selectedPaidSessions.size > 0 ? 'inline-block' : 'none';
+  }
+  
+  patientAppts.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(appt => {
+    const row = document.createElement('tr');
+    let rowClass = 'session-row';
+    if (selectedSessions.has(appt.id)) rowClass += ' selected';
+    if (appt.paid && selectedPaidSessions.has(appt.id)) rowClass += ' selected';
+    row.className = rowClass;
+    
+    row.onclick = (e) => { 
+      if (e.target.type !== 'checkbox') {
+        if (appt.paid) {
+          togglePaidSessionSelection(appt.id);
+        } else {
+          toggleSessionSelection(appt.id);
+        }
+      }
+    };
+    
+    const paymentLabel = appt.paymentMethod === 'pix' ? 'Pix' : appt.paymentMethod === 'cartao' ? 'Cartão' : 'Dinheiro';
+    
+    row.innerHTML = `
+      <td><input type="checkbox" class="session-checkbox" ${appt.paid ? (selectedPaidSessions.has(appt.id) ? 'checked' : '') : (selectedSessions.has(appt.id) ? 'checked' : '')} onchange="${appt.paid ? `togglePaidSessionSelection('${appt.id}')` : `toggleSessionSelection('${appt.id}')`}"></td>
+      <td>${formatDate(appt.date)}</td>
+      <td>${appt.typeName || appt.type}</td>
+      <td>R$ ${parseFloat(appt.value || 0).toFixed(2)}</td>
+      <td>${paymentLabel}</td>
+      <td>${appt.paid ? 'Pago' : 'Pendente'}</td>
+      <td><button class="btn btn-primary" onclick="event.stopPropagation();togglePayment('${appt.id}')">${appt.paid ? 'Desmarcar' : 'Pagar'}</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function toggleSessionSelection(apptId) {
+  if (selectedSessions.has(apptId)) selectedSessions.delete(apptId);
+  else selectedSessions.add(apptId);
+  renderPatientFinance();
+}
+
+function togglePaidSessionSelection(apptId) {
+  if (selectedPaidSessions.has(apptId)) selectedPaidSessions.delete(apptId);
+  else selectedPaidSessions.add(apptId);
+  renderPatientFinance();
+}
+
+function toggleAllSessions() {
+  const patientAppts = appointments.filter(a => 
+    a.patientId === currentPatientId && 
+    !a.cancelled && 
+    !a.paid && 
+    a.userId === currentUserId
+  );
+  
+  const allSelected = patientAppts.every(a => selectedSessions.has(a.id));
+  patientAppts.forEach(a => allSelected ? selectedSessions.delete(a.id) : selectedSessions.add(a.id));
+  renderPatientFinance();
+}
+
+function sendPendingSessionsWhatsApp() {
+  if (selectedSessions.size === 0) { 
+    alert('Selecione pelo menos uma sessão!'); 
+    return; 
+  }
+  
+  const patient = patients.find(p => p.id === currentPatientId);
+  const sig = getProfessionalSignature();
+  
+  let total = 0, sessionsList = '';
+  const selectedAppts = appointments
+    .filter(a => selectedSessions.has(a.id))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  selectedAppts.forEach((appt, index) => {
+    total += parseFloat(appt.value || 0);
+    sessionsList += (index + 1) + '. ' + formatDate(appt.date) + ' - R$ ' + parseFloat(appt.value || 0).toFixed(2) + '\n';
+  });
+  
+  let msg = 'Olá ' + patient.name + ', tudo bem? 😊\n\nAtendimentos em aberto:\n\n' + sessionsList + '\n💰 *Total: R$ ' + total.toFixed(2) + '*\n\n';
+  if (sig.pix) msg += '💳 Chave Pix:\n*' + sig.pix + '*\n\n';
+  msg += 'Qualquer dúvida, estou à disposição!' + (sig.name ? '\n\nAtenciosamente,\n' + sig.name : '') + (sig.registry ? '\n' + sig.registry : '');
+  
+  window.open('https://wa.me/55' + patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// GERAR RECIBO PDF
+function generateReceiptPDF() {
+  if (selectedPaidSessions.size === 0) {
+    alert('Selecione pelo menos uma sessão paga para gerar o recibo!');
+    return;
+  }
+  
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  const patient = patients.find(p => p.id === currentPatientId);
+  
+  const selectedAppts = appointments
+    .filter(a => selectedPaidSessions.has(a.id))
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  const total = selectedAppts.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  
+  // Cabeçalho
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.text('RECIBO', 105, 30, { align: 'center' });
+  
+  // Dados da clínica
+  doc.setFontSize(12);
+  doc.text(sig.clinic.toUpperCase(), 105, 42, { align: 'center' });
+  
+  // Linha separadora
+  doc.setDrawColor(30, 58, 95);
+  doc.setLineWidth(0.5);
+  doc.line(10, 55, 200, 55);
+  
+  // Dados do recibo
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(12);
+  doc.text('RECIBO Nº ' + Date.now().toString().slice(-6), 10, 70);
+  doc.text('Data de emissão: ' + new Date().toLocaleDateString('pt-BR'), 10, 78);
+  
+  // Dados do paciente
+  doc.setFontSize(11);
+  doc.text('Recebi de: ' + patient.name, 10, 95);
+  doc.text('CPF: ' + (patient.cpf || 'Não informado'), 10, 103);
+  
+  // Descrição dos serviços
+  doc.setFontSize(12);
+  doc.setTextColor(30, 58, 95);
+  doc.text('SERVIÇOS PRESTADOS:', 10, 120);
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  
+  let yPosition = 130;
+  selectedAppts.forEach((appt, idx) => {
+    const paymentMethod = appt.paymentMethod === 'pix' ? 'Pix' : appt.paymentMethod === 'cartao' ? 'Cartão' : 'Dinheiro';
+    doc.text((idx + 1) + '. ' + formatDate(appt.date) + ' - ' + (appt.typeName || appt.type) + ' - R$ ' + parseFloat(appt.value || 0).toFixed(2) + ' (' + paymentMethod + ')', 10, yPosition);
+    yPosition += 7;
+  });
+  
+  // Total
+  doc.setFontSize(14);
+  doc.setTextColor(30, 58, 95);
+  doc.text('TOTAL: R$ ' + total.toFixed(2), 10, yPosition + 15);
+  
+  // Assinatura
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.text('_________________________________', 10, yPosition + 40);
+  doc.text(sig.name || 'Profissional', 10, yPosition + 48);
+  doc.text(sig.registry || '', 10, yPosition + 56);
+  
+  // Rodapé
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 290, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 295, { align: 'center' });
+  }
+  
+  doc.save('Recibo_' + patient.name.replace(/\s+/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf');
+}
+
+function renderEvolutions() {
+  const list = document.getElementById('evolutionsList');
+  if (!list) return;
+  
+  list.innerHTML = '';
+  const patientEvos = evolutions.filter(e => e.patientId === currentPatientId)
+    .sort((a, b) => new Date(b.date + 'T' + b.time) - new Date(a.date + 'T' + a.time));
+  
+  if (patientEvos.length === 0) {
+    list.innerHTML = '<p style="color:#718096;text-align:center;padding:20px">Nenhuma evolução registrada</p>';
+    return;
+  }
+  
+  patientEvos.forEach(evo => {
+    const div = document.createElement('div');
+    div.className = 'evolution-item';
+    div.innerHTML = `
+      <div class="date">${formatDate(evo.date)} às ${evo.time}</div>
+      <div class="text">${evo.text}</div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+async function addEvolution() {
+  const text = document.getElementById('newEvolution').value;
+  if (!text.trim()) return;
+  
+  const now = new Date();
+  evolutions.push({
+    id: Date.now().toString(),
+    patientId: currentPatientId,
+    date: now.toISOString().split('T')[0],
+    time: now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}),
+    text: text
+  });
+  
+  await saveDataToFirebase();
+  document.getElementById('newEvolution').value = '';
+  renderEvolutions();
+}
+
+function generatePatientReport() {
+  const month = document.getElementById('reportMonthPatient').value;
+  const includeEvolution = document.getElementById('includeEvolution').checked;
+  
+  if (!month) { 
+    alert('Selecione o mês!'); 
+    return; 
+  }
+  
+  const sig = getProfessionalSignature();
+  const [year, mon] = month.split('-').map(Number);
+  const patient = patients.find(p => p.id === currentPatientId);
+  
+  const monthEvos = evolutions.filter(e => 
+    e.patientId === currentPatientId && 
+    e.date.startsWith(month)
+  ).sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  const monthAppts = appointments.filter(a => 
+    a.patientId === currentPatientId && 
+    !a.cancelled && 
+    a.date.startsWith(month) && 
+    a.userId === currentUserId
+  );
+  
+  const monthName = new Date(year, mon - 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  let report = 'RELATÓRIO MENSAL - ' + sig.clinic.toUpperCase() + '\n';
+  report += (sig.name ? sig.name + '\n' : '');
+  report += (sig.registry ? sig.registry + '\n' : '');
+  report += '================================\n\n';
+  report += 'Paciente: ' + patient.name + '\n';
+  report += 'Período: ' + monthName + '\n\n';
+  report += '📋 RESUMO\n';
+  report += 'Atendimentos: ' + monthAppts.length + '\n\n';
+  
+  if (monthAppts.length > 0) {
+    report += 'Datas:\n';
+    monthAppts.forEach(a => { report += '• ' + formatDate(a.date) + ' - ' + a.time + '\n'; });
+    report += '\n';
+  }
+  
+  // Só inclui evolução se checkbox estiver marcado
+  if (includeEvolution) {
+    report += '📊 EVOLUÇÃO / ANOTAÇÕES\n\n';
+    if (monthEvos.length === 0) { 
+      report += 'Nenhuma evolução registrada.\n'; 
+    } else {
+      monthEvos.forEach((evo, i) => {
+        report += 'Atendimento ' + (i + 1) + ' - ' + formatDate(evo.date) + '\n';
+        report += evo.text + '\n';
+        report += '--------------------------------\n\n';
+      });
+    }
+  }
+  
+  report += '\n' + sig.clinic + (sig.name ? '\n' + sig.name : '') + (sig.registry ? '\n' + sig.registry : '');
+  currentReport = report;
+  document.getElementById('reportContent').textContent = report;
+  document.getElementById('reportContainer').style.display = 'block';
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(currentReport).then(() => alert('Relatório copiado!'));
+}
+
+function sendReportWhatsApp() {
+  const patient = patients.find(p => p.id === currentPatientId);
+  window.open('https://wa.me/55' + patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(currentReport), '_blank');
+}
+
+function generatePDFReport() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  const patient = patients.find(p => p.id === currentPatientId);
+  const month = document.getElementById('reportMonthPatient').value;
+  const includeEvolution = document.getElementById('includeEvolution').checked;
+  const [year, mon] = month.split('-').map(Number);
+  const monthName = new Date(year, mon - 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  const monthEvos = evolutions.filter(e => 
+    e.patientId === currentPatientId && 
+    e.date.startsWith(month)
+  ).sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  const monthAppts = appointments.filter(a => 
+    a.patientId === currentPatientId && 
+    !a.cancelled && 
+    a.date.startsWith(month) && 
+    a.userId === currentUserId
+  );
+  
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.text(sig.clinic.toUpperCase(), 105, 20, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(sig.name || 'Profissional', 105, 30, { align: 'center' });
+  doc.text(sig.registry || '', 105, 37, { align: 'center' });
+  
+  doc.setDrawColor(30, 58, 95);
+  doc.setLineWidth(0.5);
+  doc.line(10, 45, 200, 45);
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(16);
+  doc.text('RELATÓRIO MENSAL', 105, 55, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Paciente: ' + patient.name, 10, 70);
+  doc.text('Período: ' + monthName, 10, 78);
+  doc.line(10, 85, 200, 85);
+  
+  let yPosition = 95;
+  
+  doc.setFontSize(12);
+  doc.setTextColor(30, 58, 95);
+  doc.text('RESUMO DO PERÍODO', 10, yPosition);
+  yPosition += 10;
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.text('Total de Atendimentos: ' + monthAppts.length, 10, yPosition);
+  yPosition += 8;
+  
+  if (monthAppts.length > 0) {
+    doc.text('Datas:', 10, yPosition);
+    yPosition += 6;
+    monthAppts.forEach(a => {
+      doc.text('• ' + formatDate(a.date) + ' às ' + a.time, 15, yPosition);
+      yPosition += 5;
+    });
+    yPosition += 5;
+  }
+  
+  // Só inclui evolução se checkbox estiver marcado
+  if (includeEvolution) {
+    if (yPosition > 250) { doc.addPage(); yPosition = 20; }
+    
+    doc.setFontSize(12);
+    doc.setTextColor(30, 58, 95);
+    doc.text('EVOLUÇÃO CLÍNICA', 10, yPosition);
+    yPosition += 10;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    
+    if (monthEvos.length === 0) {
+      doc.text('Nenhuma evolução registrada neste período.', 10, yPosition);
+      yPosition += 10;
+    } else {
+      monthEvos.forEach((evo, i) => {
+        if (yPosition > 270) { doc.addPage(); yPosition = 20; }
+        doc.setFont(undefined, 'bold');
+        doc.text('Atendimento ' + (i + 1) + ' - ' + formatDate(evo.date), 10, yPosition);
+        yPosition += 6;
+        doc.setFont(undefined, 'normal');
+        const splitText = doc.splitTextToSize(evo.text, 180);
+        doc.text(splitText, 10, yPosition);
+        yPosition += (splitText.length * 5) + 8;
+        doc.setDrawColor(200, 200, 200);
+        doc.line(10, yPosition, 200, yPosition);
+        yPosition += 8;
+      });
+    }
+  }
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 290, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 295, { align: 'center' });
+  }
+  
+  doc.save('Relatorio_' + patient.name.replace(/\s+/g, '_') + '_' + month + '.pdf');
+}
+
+function generatePatientAppointmentsPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  const patient = patients.find(p => p.id === currentPatientId);
+  
+  const allAppts = appointments.filter(a => 
+    a.patientId === currentPatientId && 
+    !a.cancelled
+  ).sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.text(sig.clinic.toUpperCase(), 105, 20, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(sig.name || 'Profissional', 105, 30, { align: 'center' });
+  doc.text(sig.registry || '', 105, 37, { align: 'center' });
+  
+  doc.setDrawColor(30, 58, 95);
+  doc.setLineWidth(0.5);
+  doc.line(10, 45, 200, 45);
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(16);
+  doc.text('RELATÓRIO DE AGENDAMENTOS', 105, 55, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Paciente: ' + patient.name, 10, 70);
+  doc.text('Telefone: ' + patient.phone, 10, 78);
+  doc.text('Total de Agendamentos: ' + allAppts.length, 10, 86);
+  doc.line(10, 93, 200, 93);
+  
+  let yPosition = 103;
+  
+  if (allAppts.length === 0) {
+    doc.setFontSize(10);
+    doc.text('Nenhum agendamento encontrado para este paciente.', 10, yPosition);
+  } else {
+    doc.setFontSize(10);
+    doc.setTextColor(30, 58, 95);
+    doc.text('DATA', 10, yPosition);
+    doc.text('HORÁRIO', 50, yPosition);
+    doc.text('PROFISSIONAL', 80, yPosition);
+    doc.text('TIPO', 140, yPosition);
+    doc.text('STATUS', 180, yPosition);
+    yPosition += 8;
+    doc.line(10, yPosition - 3, 200, yPosition - 3);
+    
+    doc.setTextColor(0, 0, 0);
+    allAppts.forEach(appt => {
+      if (yPosition > 280) { doc.addPage(); yPosition = 20; }
+      
+      const user = clinicUsers.find(u => u.id === appt.userId);
+      const userName = user ? user.name.split(' ')[0] : '-';
+      
+      doc.text(formatDate(appt.date), 10, yPosition);
+      doc.text(appt.time, 50, yPosition);
+      doc.text(userName, 80, yPosition);
+      doc.text(appt.typeName || appt.type, 140, yPosition);
+      doc.text(appt.paid ? 'Pago' : 'Pendente', 180, yPosition);
+      
+      yPosition += 7;
+    });
+  }
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 290, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 295, { align: 'center' });
+  }
+  
+  const fileName = 'Agendamentos_' + patient.name.replace(/\s+/g, '_') + '.pdf';
+  doc.save(fileName);
+}
+
+function updateDashboard() {
+  if (currentUserRole === 'secretaria') return;
+  
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7);
+  
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(currentMonth) && 
+    a.userId === currentUserId
+  );
+  
+  const totalRevenue = monthAppts.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  const pending = appointments.filter(a => 
+    !a.cancelled && 
+    !a.paid && 
+    a.userId === currentUserId
+  ).reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  
+  document.getElementById('dashTotalRevenue').textContent = 'R$ ' + totalRevenue.toFixed(2);
+  document.getElementById('dashTotalSessions').textContent = monthAppts.length;
+  document.getElementById('dashAvgTicket').textContent = 'R$ ' + (monthAppts.length > 0 ? (totalRevenue / monthAppts.length).toFixed(2) : '0.00');
+  document.getElementById('dashPending').textContent = 'R$ ' + pending.toFixed(2);
+  
+  renderCharts();
+}
+
+function renderCharts() {
+  if (currentUserRole === 'secretaria') return;
+  
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7);
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.paid && 
+    a.date.startsWith(currentMonth) && 
+    a.userId === currentUserId
+  );
+  
+  const byType = {};
+  monthAppts.forEach(appt => {
+    const typeName = getConsultationTypeName(appt.type);
+    byType[typeName] = (byType[typeName] || 0) + parseFloat(appt.value || 0);
+  });
+  
+  const ctxType = document.getElementById('chartByType');
+  if (ctxType) {
+    new Chart(ctxType, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(byType),
+        datasets: [{
+          data: Object.values(byType),
+          backgroundColor: ['#1e3a5f', '#38a169', '#d69e2e', '#e53e3e', '#805ad5']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+  
+  const byPayment = { Pix: 0, Cartão: 0, Dinheiro: 0 };
+  monthAppts.forEach(appt => {
+    const method = appt.paymentMethod || 'pix';
+    const label = method === 'pix' ? 'Pix' : method === 'cartao' ? 'Cartão' : 'Dinheiro';
+    byPayment[label] += parseFloat(appt.value || 0);
+  });
+  
+  const ctxPayment = document.getElementById('chartByPayment');
+  if (ctxPayment) {
+    new Chart(ctxPayment, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(byPayment),
+        datasets: [{
+          data: Object.values(byPayment),
+          backgroundColor: ['#1e3a5f', '#38a169', '#d69e2e']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom' } }
+      }
+    });
+  }
+  
+  const monthlyData = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.toISOString().slice(0, 7);
+    monthlyData[key] = 0;
+  }
+  
+  appointments.filter(a => !a.cancelled && a.paid && a.userId === currentUserId).forEach(appt => {
+    const month = appt.date.slice(0, 7);
+    if (monthlyData.hasOwnProperty(month)) {
+      monthlyData[month] += parseFloat(appt.value || 0);
+    }
+  });
+  
+  const ctxMonthly = document.getElementById('chartMonthly');
+  if (ctxMonthly) {
+    new Chart(ctxMonthly, {
+      type: 'bar',
+      data: {
+        labels: Object.keys(monthlyData).map(m => {
+          const [y, mon] = m.split('-');
+          return mon + '/' + y;
+        }),
+        datasets: [{
+          label: 'Faturamento (R$)',
+          data: Object.values(monthlyData),
+          backgroundColor: '#1e3a5f'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+}
+
+function getConsultationTypeName(typeId) {
+  const type = consultationTypes.find(t => t.id === typeId);
+  return type ? type.name : typeId;
+}
+
+// FUNÇÃO PARA OBTER COR DO TERAPEUTA
+function getTherapistColor(userId) {
+  const therapists = clinicUsers.filter(u => u.role !== 'secretaria');
+  const index = therapists.findIndex(u => u.id === userId);
+  if (index === -1) return 'blue'; // Cor padrão
+  return therapistColors[index % therapistColors.length];
+}
+
+// FUNÇÃO PARA RENDERIZAR LEGENDA DE CORES
+function renderColorLegend() {
+  const container = document.getElementById('colorLegend');
+  if (!container) return;
+  
+  // Limpa itens antigos mantendo o título
+  const title = container.querySelector('span');
+  container.innerHTML = '';
+  if (title) container.appendChild(title);
+  
+  const therapists = clinicUsers.filter(u => u.role !== 'secretaria');
+  
+  therapists.forEach((user, index) => {
+    const color = therapistColors[index % therapistColors.length];
+    const item = document.createElement('div');
+    item.className = 'color-legend-item';
+    item.innerHTML = `
+      <div class="color-box color-${color}" style="background:${getColorHex(color)}"></div>
+      <span>${user.name.split(' ')[0]}</span>
+    `;
+    container.appendChild(item);
+  });
+}
+
+function getColorHex(colorName) {
+  const colors = {
+    green: '#38a169',
+    orange: '#ed8936',
+    yellow: '#d69e2e',
+    blue: '#3182ce',
+    pink: '#d53f8c',
+    red: '#e53e3e'
+  };
+  return colors[colorName] || '#3182ce';
+}
+
+// FUNÇÃO PARA ALTERNAR VISUALIZAÇÃO DA AGENDA
+function setCalendarView(view) {
+  calendarViewMode = view;
+  document.getElementById('btnMonthView').classList.toggle('active', view === 'month');
+  document.getElementById('btnWeekView').classList.toggle('active', view === 'week');
+  renderCalendar();
+}
+
+function renderCalendar() {
+  if (calendarViewMode === 'week') {
+    renderWeekCalendar();
+  } else {
+    renderMonthCalendar();
+  }
+}
+
+function renderMonthCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  document.getElementById('currentMonth').textContent = new Date(year, month).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const calendar = document.getElementById('calendar');
+  calendar.innerHTML = '';
+  calendar.className = 'calendar';
+  
+  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  days.forEach(day => {
+    const div = document.createElement('div');
+    div.className = 'calendar-header';
+    div.textContent = day;
+    calendar.appendChild(div);
+  });
+  
+  for (let i = 0; i < firstDay; i++) { 
+    calendar.appendChild(document.createElement('div')); 
+  }
+  
+  const today = new Date();
+  for (let day = 1; day <= daysInMonth; day++) {
+    const div = document.createElement('div');
+    div.className = 'calendar-day';
+    div.innerHTML = '<strong>' + day + '</strong>';
+    
+    if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
+      div.style.background = '#1e3a5f'; 
+      div.style.color = 'white';
+    }
+    
+    const dayAppointments = appointments.filter(a => {
+      const parts = a.date.split('-');
+      return parseInt(parts[0]) === year && (parseInt(parts[1]) - 1) === month && parseInt(parts[2]) === day && !a.cancelled;
+    });
+    
+    dayAppointments.forEach(appt => {
+      const patient = patients.find(p => p.id === appt.patientId);
+      const color = getTherapistColor(appt.userId);
+      
+      const apptDiv = document.createElement('div');
+      apptDiv.className = 'appointment color-' + color;
+      
+      let html = '<span>' + appt.time + ' ' + (patient ? patient.name.split(' ')[0] : '') + '</span>';
+      
+      html += '<span class="edit-icon" onclick="event.stopPropagation();editAppointment(\'' + appt.id + '\')" title="Editar">✏️</span>';
+      apptDiv.style.cursor = 'pointer';
+      apptDiv.onclick = (e) => { 
+        if (!e.target.classList.contains('edit-icon')) {
+          editAppointment(appt.id); 
+        }
+      };
+      
+      apptDiv.innerHTML = html;
+      div.appendChild(apptDiv);
+    });
+    
+    div.onclick = () => openAppointmentModal(year, month, day);
+    calendar.appendChild(div);
+  }
+}
+
+function renderWeekCalendar() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  document.getElementById('currentMonth').textContent = new Date(year, month).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'}) + ' (Semanal)';
+  
+  const calendar = document.getElementById('calendar');
+  calendar.innerHTML = '';
+  calendar.className = 'week-calendar';
+  
+  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+  const today = new Date();
+  
+  // Encontrar o domingo da semana atual
+  const currentDayOfWeek = currentDate.getDay();
+  const sunday = new Date(currentDate);
+  sunday.setDate(currentDate.getDate() - currentDayOfWeek);
+  
+  for (let i = 0; i < 7; i++) {
+    const dayDate = new Date(sunday);
+    dayDate.setDate(sunday.getDate() + i);
+    
+    const div = document.createElement('div');
+    div.className = 'week-day';
+    
+    const isToday = dayDate.toDateString() === today.toDateString();
+    
+    div.innerHTML = `
+      <div class="week-day-header" style="${isToday ? 'background:#d69e2e' : ''}">
+        ${days[i]} ${dayDate.getDate()}/${dayDate.getMonth() + 1}
+      </div>
+    `;
+    
+    const dayAppointments = appointments.filter(a => {
+      const parts = a.date.split('-');
+      return parseInt(parts[0]) === dayDate.getFullYear() && 
+             (parseInt(parts[1]) - 1) === dayDate.getMonth() && 
+             parseInt(parts[2]) === dayDate.getDate() && 
+             !a.cancelled;
+    }).sort((a, b) => a.time.localeCompare(b.time));
+    
+    dayAppointments.forEach(appt => {
+      const patient = patients.find(p => p.id === appt.patientId);
+      const color = getTherapistColor(appt.userId);
+      
+      const apptDiv = document.createElement('div');
+      apptDiv.className = 'appointment color-' + color;
+      apptDiv.style.marginBottom = '8px';
+      apptDiv.style.padding = '8px';
+      
+      let html = `<div><strong>${appt.time}</strong></div>`;
+      html += `<div>${patient ? patient.name.split(' ')[0] : '-'}</div>`;
+      html += `<div style="font-size:10px;opacity:0.9">${appt.typeName || appt.type}</div>`;
+      
+      apptDiv.innerHTML = html;
+      apptDiv.onclick = () => editAppointment(appt.id);
+      div.appendChild(apptDiv);
+    });
+    
+    div.onclick = () => openAppointmentModal(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate());
+    calendar.appendChild(div);
+  }
+}
+
+function changeMonth(delta) {
+  if (calendarViewMode === 'week') {
+    currentDate.setDate(currentDate.getDate() + (delta * 7));
+  } else {
+    currentDate.setMonth(currentDate.getMonth() + delta);
+  }
+  renderCalendar();
+}
+
+function openAppointmentModal(year, month, day) {
+  currentApptId = null;
+  document.getElementById('apptPatient').value = '';
+  document.getElementById('apptProfessional').value = currentUserId;
+  document.getElementById('apptTime').value = '';
+  document.getElementById('apptNotes').value = '';
+  document.getElementById('btnWhatsAppt').style.display = 'none';
+  document.getElementById('btnDeleteAppt').style.display = 'none';
+  document.getElementById('whatsappActionsContainer').style.display = 'none';
+  document.querySelector('input[name="paymentMethod"][value="pix"]').checked = true;
+  
+  if (year !== undefined) {
+    document.getElementById('apptDate').value = year + '-' + String(month + 1).padStart(2, '0') + '-' + String(day).padStart(2, '0');
+  } else {
+    document.getElementById('apptDate').value = new Date().toISOString().split('T')[0];
+  }
+  
+  if (consultationTypes.length > 0) {
+    document.getElementById('apptType').value = consultationTypes[0].id;
+    document.getElementById('apptValue').value = consultationTypes[0].value;
+  }
+  
+  document.getElementById('appointmentModal').classList.add('active');
+}
+
+function editAppointment(id) {
+  const appt = appointments.find(a => a.id === id);
+  if (!appt) return;
+  
+  currentApptId = id;
+  document.getElementById('apptPatient').value = appt.patientId;
+  document.getElementById('apptProfessional').value = appt.userId || currentUserId;
+  document.getElementById('apptDate').value = appt.date;
+  document.getElementById('apptTime').value = appt.time;
+  document.getElementById('apptType').value = appt.type;
+  document.getElementById('apptValue').value = appt.value;
+  document.getElementById('apptNotes').value = appt.notes || '';
+  
+  const paymentMethod = appt.paymentMethod || 'pix';
+  const radio = document.querySelector('input[name="paymentMethod"][value="' + paymentMethod + '"]');
+  if (radio) radio.checked = true;
+  
+  document.getElementById('btnWhatsAppt').style.display = 'inline-block';
+  document.getElementById('btnDeleteAppt').style.display = 'inline-block';
+  document.getElementById('whatsappActionsContainer').style.display = 'flex';
+  
+  window.currentWhatsAppAppt = appt;
+  
+  document.getElementById('appointmentModal').classList.add('active');
+}
+
+async function saveAppointment() {
+  const patientId = document.getElementById('apptPatient').value;
+  const professionalId = document.getElementById('apptProfessional').value;
+  
+  if (!patientId) { alert('Selecione um paciente!'); return; }
+  if (!professionalId) { alert('Selecione o profissional responsável!'); return; }
+  
+  const patient = patients.find(p => p.id === patientId);
+  const typeId = document.getElementById('apptType').value;
+  const type = consultationTypes.find(t => t.id === typeId);
+  
+  const data = {
+    id: currentApptId || Date.now().toString(),
+    patientId: patientId,
+    userId: professionalId, // Profissional responsável pelo faturamento
+    date: document.getElementById('apptDate').value,
+    time: document.getElementById('apptTime').value,
+    type: typeId,
+    typeName: type ? type.name : typeId,
+    value: parseFloat(document.getElementById('apptValue').value) || 0,
+    notes: document.getElementById('apptNotes').value,
+    paid: currentApptId ? (appointments.find(a => a.id === currentApptId)?.paid || false) : false,
+    cancelled: false,
+    paymentMethod: document.querySelector('input[name="paymentMethod"]:checked')?.value || 'pix'
+  };
+  
+  if (currentApptId) {
+    const idx = appointments.findIndex(a => a.id === currentApptId);
+    appointments[idx] = data;
+  } else { 
+    appointments.push(data); 
+  }
+  
+  await saveDataToFirebase();
+  closeModal('appointmentModal');
+  renderCalendar();
+  updateFinancialSummary();
+  updateDashboard();
+}
+
+async function deleteAppointment() {
+  if (!currentApptId) return;
+  
+  if (!confirm('Tem certeza que deseja excluir este agendamento?')) return;
+  
+  appointments = appointments.filter(a => a.id !== currentApptId);
+  
+  await saveDataToFirebase();
+  closeModal('appointmentModal');
+  renderCalendar();
+  updateFinancialSummary();
+  updateDashboard();
+}
+
+function sendWhatsAppCharge() {
+  if (!window.currentWhatsAppAppt) return;
+  const appt = window.currentWhatsAppAppt;
+  const patient = patients.find(p => p.id === appt.patientId);
+  const sig = getProfessionalSignature();
+  
+  let msg = `Olá ${patient.name}, tudo bem? 😊\n\nSegue os atendimentos em abertos:\n\n`;
+  msg += `📅 ${formatDate(appt.date)} às ${appt.time}\n`;
+  msg += `💰 Valor: R$ ${parseFloat(appt.value || 0).toFixed(2)}\n\n`;
+  
+  if (sig.pix) msg += `💳 Chave Pix:\n*${sig.pix}*\n\n`;
+  msg += `Qualquer dúvida, estou à disposição!`;
+  if (sig.name) msg += `\n\nAtenciosamente,\n${sig.name}`;
+  if (sig.registry) msg += `\n${sig.registry}`;
+  
+  window.open('https://wa.me/55' + patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function openRecurrenceModal() {
+  document.getElementById('recPatient').value = '';
+  document.getElementById('recProfessional').value = currentUserId;
+  document.getElementById('recStartDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('recTime').value = '';
+  document.getElementById('recWeeks').value = '4';
+  document.getElementById('recFrequency').value = '7';
+  
+  if (consultationTypes.length > 0) {
+    document.getElementById('recType').value = consultationTypes[0].id;
+    document.getElementById('recValue').value = consultationTypes[0].value;
+  }
+  
+  updateRecurrencePreview();
+  document.getElementById('recurrenceModal').classList.add('active');
+}
+
+function loadProfessionalSelect() {
+  const selects = ['apptProfessional', 'recProfessional'];
+  selects.forEach(selectId => {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    select.innerHTML = '';
+    const therapists = clinicUsers.filter(u => u.role !== 'secretaria');
+    
+    therapists.forEach(user => {
+      const opt = document.createElement('option');
+      opt.value = user.id;
+      opt.textContent = user.name;
+      select.appendChild(opt);
+    });
+  });
+}
+
+function loadRecurrenceSelect() {
+  const select = document.getElementById('recPatient');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Selecione...</option>';
+  patients.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+}
+
+function updateRecurrencePreview() {
+  const startDate = document.getElementById('recStartDate').value;
+  const weeks = parseInt(document.getElementById('recWeeks').value) || 4;
+  const frequency = parseInt(document.getElementById('recFrequency').value) || 7;
+  
+  if (!startDate) {
+    document.getElementById('recPreview').textContent = 'Selecione a data inicial';
+    return;
+  }
+  
+  let preview = 'Datas agendadas:\n';
+  const start = new Date(startDate);
+  
+  for (let i = 0; i < weeks; i++) {
+    const date = new Date(start);
+    date.setDate(date.getDate() + (i * frequency));
+    preview += '• ' + date.toLocaleDateString('pt-BR') + '\n';
+  }
+  
+  document.getElementById('recPreview').textContent = preview;
+}
+
+document.getElementById('recStartDate')?.addEventListener('change', updateRecurrencePreview);
+document.getElementById('recWeeks')?.addEventListener('change', updateRecurrencePreview);
+document.getElementById('recFrequency')?.addEventListener('change', updateRecurrencePreview);
+
+async function saveRecurrence() {
+  const patientId = document.getElementById('recPatient').value;
+  const professionalId = document.getElementById('recProfessional').value;
+  
+  if (!patientId) { alert('Selecione um paciente!'); return; }
+  if (!professionalId) { alert('Selecione o profissional responsável!'); return; }
+  
+  const startDate = document.getElementById('recStartDate').value;
+  const time = document.getElementById('recTime').value;
+  const weeks = parseInt(document.getElementById('recWeeks').value) || 4;
+  const frequency = parseInt(document.getElementById('recFrequency').value) || 7;
+  const typeId = document.getElementById('recType').value;
+  const type = consultationTypes.find(t => t.id === typeId);
+  const value = parseFloat(document.getElementById('recValue').value) || 0;
+  
+  if (!startDate || !time) { alert('Preencha data e horário!'); return; }
+  
+  const start = new Date(startDate);
+  const newAppointments = [];
+  
+  for (let i = 0; i < weeks; i++) {
+    const date = new Date(start);
+    date.setDate(date.getDate() + (i * frequency));
+    
+    newAppointments.push({
+      id: Date.now().toString() + '_' + i,
+      patientId: patientId,
+      userId: professionalId, // Profissional responsável
+      date: date.toISOString().split('T')[0],
+      time: time,
+      type: typeId,
+      typeName: type ? type.name : typeId,
+      value: value,
+      notes: 'Agendamento recorrente',
+      paid: false,
+      cancelled: false,
+      paymentMethod: 'pix',
+      isRecurrent: true
+    });
+  }
+  
+  appointments = appointments.concat(newAppointments);
+  await saveDataToFirebase();
+  
+  closeModal('recurrenceModal');
+  renderCalendar();
+  alert(weeks + ' agendamentos criados com sucesso!');
+}
+
+function openCancelRecurrenceModal() {
+  document.getElementById('cancelRecPatient').value = '';
+  document.getElementById('recurrentAppointmentsList').style.display = 'none';
+  document.getElementById('noRecurrentMsg').style.display = 'none';
+  document.getElementById('btnCancelRecurrence').style.display = 'none';
+  document.getElementById('cancelRecurrenceModal').classList.add('active');
+}
+
+function loadCancelRecurrenceSelect() {
+  const select = document.getElementById('cancelRecPatient');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Selecione um paciente...</option>';
+  patients.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+}
+
+function showRecurrentAppointments() {
+  const patientId = document.getElementById('cancelRecPatient').value;
+  const listContainer = document.getElementById('recurrentAppointmentsList');
+  const noMsg = document.getElementById('noRecurrentMsg');
+  const btnCancel = document.getElementById('btnCancelRecurrence');
+  const listContent = document.getElementById('recurrentListContent');
+  
+  if (!patientId) {
+    listContainer.style.display = 'none';
+    noMsg.style.display = 'none';
+    btnCancel.style.display = 'none';
+    return;
+  }
+  
+  const today = new Date().toISOString().split('T')[0];
+  const futureAppts = appointments.filter(a => 
+    a.patientId === patientId && 
+    !a.cancelled && 
+    a.date >= today &&
+    a.isRecurrent === true
+  ).sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+  if (futureAppts.length === 0) {
+    listContainer.style.display = 'none';
+    noMsg.style.display = 'block';
+    btnCancel.style.display = 'none';
+  } else {
+    listContainer.style.display = 'block';
+    noMsg.style.display = 'none';
+    btnCancel.style.display = 'block';
+    
+    let html = '<div style="background:#f7fafc;padding:15px;border-radius:8px;">';
+    html += '<p style="font-weight:bold;margin-bottom:10px;color:#1e3a5f;">' + futureAppts.length + ' agendamento(s) recorrente(s) encontrado(s):</p>';
+    html += '<ul style="list-style:none;padding:0;">';
+    
+    futureAppts.forEach(appt => {
+      html += `<li style="padding:8px 0;border-bottom:1px solid #e2e8f0;">📅 ${formatDate(appt.date)} às ${appt.time} - ${appt.typeName || appt.type}</li>`;
+    });
+    
+    html += '</ul></div>';
+    listContent.innerHTML = html;
+    
+    window.currentRecurrentPatientId = patientId;
+    window.currentRecurrentAppointments = futureAppts;
+  }
+}
+
+async function cancelRecurrence() {
+  const patientId = window.currentRecurrentPatientId;
+  const apptsToCancel = window.currentRecurrentAppointments;
+  
+  if (!patientId || !apptsToCancel || apptsToCancel.length === 0) {
+    alert('Nenhum agendamento para cancelar.');
+    return;
+  }
+  
+  const patient = patients.find(p => p.id === patientId);
+  if (!confirm(`Deseja cancelar ${apptsToCancel.length} agendamento(s) recorrente(s) de ${patient.name}?\n\n⚠️ Esta ação não pode ser desfeita!`)) {
+    return;
+  }
+  
+  try {
+    const apptIdsToCancel = apptsToCancel.map(a => a.id);
+    appointments = appointments.filter(a => !apptIdsToCancel.includes(a.id));
+    
+    await saveDataToFirebase();
+    
+    alert(`${apptsToCancel.length} agendamento(s) cancelado(s) com sucesso!`);
+    closeModal('cancelRecurrenceModal');
+    renderCalendar();
+    updateFinancialSummary();
+    updateDashboard();
+  } catch (error) {
+    alert('Erro ao cancelar recorrência: ' + error.message);
+  }
+}
+
+function sendAppointmentWhatsApp() {
+  if (!currentApptId) return;
+  const appt = appointments.find(a => a.id === currentApptId);
+  const patient = patients.find(p => p.id === appt.patientId);
+  const sig = getProfessionalSignature();
+  
+  let msg = 'Olá ' + patient.name + ', tudo bem? 😊\n\nConfirmação de agendamento:\n\n📅 Data: ' + formatDate(appt.date) + '\n⏰ Horário: ' + appt.time + '\n🏥 Local: ' + sig.clinic + '\n💰 Valor: R$ ' + parseFloat(appt.value).toFixed(2) + '\n';
+  
+  if (sig.pix) msg += '\n💳 Chave Pix: ' + sig.pix;
+  msg += '\n\nEstamos te aguardando!' + (sig.name ? '\nAtenciosamente, ' + sig.name : '') + (sig.registry ? '\n' + sig.registry : '');
+  
+  window.open('https://wa.me/55' + patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+function loadPatientSelect() {
+  const select = document.getElementById('apptPatient');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Selecione...</option>';
+  patients.sort((a, b) => a.name.localeCompare(b.name)).forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+}
+
+function renderFinancialTable() {
+  if (currentUserRole === 'secretaria') return;
+  
+  const tbody = document.getElementById('financialTable');
+  if (!tbody) return;
+  
+  tbody.innerHTML = '';
+  
+  // Agora filtra por userId do profissional logado (quem vai receber o faturamento)
+  const pendingAppts = appointments.filter(a => 
+    !a.cancelled && 
+    !a.paid && 
+    a.userId === currentUserId
+  ).sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  pendingAppts.forEach(appt => {
+    const patient = patients.find(p => p.id === appt.patientId);
+    const row = document.createElement('tr');
+    row.className = 'financial-row' + (selectedFinancial.has(appt.id) ? ' selected' : '');
+    row.onclick = (e) => { if (e.target.type !== 'checkbox') toggleFinancialSelection(appt.id); };
+    
+    const paymentLabel = appt.paymentMethod === 'pix' ? 'Pix' : appt.paymentMethod === 'cartao' ? 'Cartão' : 'Dinheiro';
+    
+    row.innerHTML = `
+      <td><input type="checkbox" class="session-checkbox" ${selectedFinancial.has(appt.id) ? 'checked' : ''} onchange="toggleFinancialSelection('${appt.id}')"></td>
+      <td>${patient ? patient.name : '-'}</td>
+      <td>${formatDate(appt.date)}</td>
+      <td>${appt.typeName || appt.type}</td>
+      <td>R$ ${parseFloat(appt.value || 0).toFixed(2)}</td>
+      <td>${paymentLabel}</td>
+      <td>⏳ Pendente</td>
+      <td><button class="btn btn-primary" onclick="event.stopPropagation();togglePayment('${appt.id}')">Pagar</button></td>
+    `;
+    tbody.appendChild(row);
+  });
+  
+  const count = selectedFinancial.size;
+  document.getElementById('selectedCount').textContent = count;
+  document.getElementById('btnCobrarSelecionados').style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+function toggleFinancialSelection(apptId) {
+  if (selectedFinancial.has(apptId)) selectedFinancial.delete(apptId);
+  else selectedFinancial.add(apptId);
+  renderFinancialTable();
+}
+
+function toggleAllFinancial() {
+  const pendingAppts = appointments.filter(a => !a.cancelled && !a.paid && a.userId === currentUserId);
+  const allSelected = pendingAppts.every(a => selectedFinancial.has(a.id));
+  pendingAppts.forEach(a => allSelected ? selectedFinancial.delete(a.id) : selectedFinancial.add(a.id));
+  renderFinancialTable();
+}
+
+function selectAllPending() {
+  const pendingAppts = appointments.filter(a => !a.cancelled && !a.paid && a.userId === currentUserId);
+  pendingAppts.forEach(a => selectedFinancial.add(a.id));
+  renderFinancialTable();
+}
+
+function clearSelection() {
+  selectedFinancial.clear();
+  renderFinancialTable();
+  document.getElementById('selectAllFinancial').checked = false;
+}
+
+function sendSelectedPendingWhatsApp() {
+  if (selectedFinancial.size === 0) { alert('Selecione pelo menos um atendimento!'); return; }
+  
+  const byPatient = {};
+  let totalGeral = 0;
+  
+  selectedFinancial.forEach(apptId => {
+    const appt = appointments.find(a => a.id === apptId);
+    const patient = patients.find(p => p.id === appt.patientId);
+    if (!byPatient[appt.patientId]) { byPatient[appt.patientId] = {patient: patient, appts: [], total: 0}; }
+    byPatient[appt.patientId].appts.push(appt);
+    byPatient[appt.patientId].total += parseFloat(appt.value || 0);
+    totalGeral += parseFloat(appt.value || 0);
+  });
+  
+  const sig = getProfessionalSignature();
+  
+  if (Object.keys(byPatient).length === 1) {
+    const pid = Object.keys(byPatient)[0];
+    const data = byPatient[pid];
+    
+    let msg = 'Olá ' + data.patient.name + ', tudo bem? 😊\n\nGostaria de lembrar que você possui os seguintes atendimentos em aberto:\n\n';
+    data.appts.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((appt, idx) => {
+      msg += (idx + 1) + '. ' + formatDate(appt.date) + ' - ' + (appt.typeName || appt.type) + ' - R$ ' + parseFloat(appt.value || 0).toFixed(2) + '\n';
+    });
+    msg += '\n💰 *Total: R$ ' + data.total.toFixed(2) + '*\n\n';
+    if (sig.pix) msg += '💳 Chave Pix para pagamento:\n*' + sig.pix + '*\n\n';
+    msg += 'Agradeço a atenção! Qualquer dúvida, estou à disposição.' + (sig.name ? '\n\nAtenciosamente,\n' + sig.name : '') + (sig.registry ? '\n' + sig.registry : '');
+    
+    window.open('https://wa.me/55' + data.patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
+  } else {
+    let msgConfirm = 'Você selecionou atendimentos de ' + Object.keys(byPatient).length + ' pacientes diferentes:\n\n';
+    Object.values(byPatient).forEach((data, idx) => {
+      msgConfirm += (idx + 1) + '. ' + data.patient.name + ' - R$ ' + data.total.toFixed(2) + '\n';
+    });
+    msgConfirm += '\nDeseja enviar mensagem para todos? Será aberta uma janela para cada paciente.';
+    
+    if (confirm(msgConfirm)) {
+      Object.values(byPatient).forEach(data => {
+        let msg = 'Olá ' + data.patient.name + ', tudo bem? 😊\n\nGostaria de lembrar que você possui os seguintes atendimentos em aberto:\n\n';
+        data.appts.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((appt, idx) => {
+          msg += (idx + 1) + '. ' + formatDate(appt.date) + ' - ' + (appt.typeName || appt.type) + ' - R$ ' + parseFloat(appt.value || 0).toFixed(2) + '\n';
+        });
+        msg += '\n💰 *Total: R$ ' + data.total.toFixed(2) + '*\n\n';
+        if (sig.pix) msg += '💳 Chave Pix para pagamento:\n*' + sig.pix + '*\n\n';
+        msg += 'Agradeço a atenção! Qualquer dúvida, estou à disposição.' + (sig.name ? '\n\nAtenciosamente,\n' + sig.name : '') + (sig.registry ? '\n' + sig.registry : '');
+        
+        setTimeout(() => {
+          window.open('https://wa.me/55' + data.patient.phone.replace(/\D/g, '') + '?text=' + encodeURIComponent(msg), '_blank');
+        }, 500);
+      });
+    }
+  }
+}
+
+async function togglePayment(id) {
+  const appt = appointments.find(a => a.id === id);
+  
+  // Verifica se o agendamento pertence ao profissional logado
+  if (appt.userId !== currentUserId) {
+    alert('Você só pode alterar o pagamento dos seus próprios atendimentos.');
+    return;
+  }
+  
+  appt.paid = !appt.paid;
+  await saveDataToFirebase();
+  renderFinancialTable();
+  updateFinancialSummary();
+  renderCalendar();
+  if (currentPatientId) renderPatientFinance();
+  updateDashboard();
+}
+
+function updateFinancialSummary() {
+  if (currentUserRole === 'secretaria') return;
+  
+  // Filtra apenas os agendamentos onde o profissional logado é o responsável
+  const activeAppts = appointments.filter(a => !a.cancelled && a.userId === currentUserId);
+  const received = activeAppts.filter(a => a.paid).reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  const pending = activeAppts.filter(a => !a.paid).reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  
+  document.getElementById('totalReceived').textContent = 'R$ ' + received.toFixed(2);
+  document.getElementById('totalPending').textContent = 'R$ ' + pending.toFixed(2);
+  document.getElementById('totalSessions').textContent = activeAppts.length;
+}
+
+function showCashFlowTab(tab) {
+  document.querySelectorAll('#fluxo .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('#fluxo .tab-content').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('cf' + tab.charAt(0).toUpperCase() + tab.slice(1) + 'Tab').classList.add('active');
+}
+
+function renderCashFlow() {
+  if (currentUserRole === 'secretaria') return;
+  
+  const month = document.getElementById('cashFlowMonth').value;
+  if (!month) return;
+  
+  // Filtra apenas os agendamentos do profissional logado
+  const entries = appointments.filter(a => 
+    !a.cancelled && 
+    a.paid && 
+    a.date.startsWith(month) && 
+    a.userId === currentUserId
+  );
+  
+  const monthExpenses = expenses.filter(e => 
+    e.date.startsWith(month)
+  );
+  
+  const totalEntries = entries.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  const totalExits = monthExpenses.reduce((s, e) => s + parseFloat(e.value || 0), 0);
+  
+  document.getElementById('cfEntries').textContent = 'R$ ' + totalEntries.toFixed(2);
+  document.getElementById('cfExits').textContent = 'R$ ' + totalExits.toFixed(2);
+  document.getElementById('cfBalance').textContent = 'R$ ' + (totalEntries - totalExits).toFixed(2);
+  
+  const entriesBody = document.getElementById('entriesTable');
+  entriesBody.innerHTML = '';
+  entries.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(appt => {
+    const patient = patients.find(p => p.id === appt.patientId);
+    const paymentLabel = appt.paymentMethod === 'pix' ? 'Pix' : appt.paymentMethod === 'cartao' ? 'Cartão' : 'Dinheiro';
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${formatDate(appt.date)}</td>
+      <td>${patient ? patient.name : '-'}</td>
+      <td>${appt.typeName || appt.type}</td>
+      <td>R$ ${parseFloat(appt.value || 0).toFixed(2)}</td>
+      <td>${paymentLabel}</td>
+    `;
+    entriesBody.appendChild(row);
+  });
+
+  const exitsBody = document.getElementById('exitsTable');
+  exitsBody.innerHTML = '';
+  monthExpenses.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(exp => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${formatDate(exp.date)}</td>
+      <td>${exp.description}</td>
+      <td>${exp.category}</td>
+      <td>R$ ${parseFloat(exp.value || 0).toFixed(2)}</td>
+      <td><button class="btn btn-danger" onclick="deleteExpense('${exp.id}')">🗑</button></td>
+    `;
+    exitsBody.appendChild(row);
+  });
+}
+
+function openExpenseModal() {
+  document.getElementById('expenseDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('expenseDesc').value = '';
+  document.getElementById('expenseCategory').value = 'material';
+  document.getElementById('expenseValue').value = '';
+  document.getElementById('expenseModal').classList.add('active');
+}
+
+async function saveExpense() {
+  const data = {
+    id: Date.now().toString(),
+    date: document.getElementById('expenseDate').value,
+    description: document.getElementById('expenseDesc').value.trim(),
+    category: document.getElementById('expenseCategory').value,
+    value: parseFloat(document.getElementById('expenseValue').value) || 0
+  };
+  
+  if (!data.description || !data.value) { alert('Preencha descrição e valor!'); return; }
+  
+  expenses.push(data);
+  await saveDataToFirebase();
+  closeModal('expenseModal');
+  renderCashFlow();
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Excluir esta despesa?')) return;
+  expenses = expenses.filter(e => e.id !== id);
+  await saveDataToFirebase();
+  renderCashFlow();
+}
+
+function renderReports() {
+  if (currentUserRole === 'secretaria') return;
+  
+  const month = document.getElementById('reportMonth').value;
+  if (!month) return;
+  
+  // Filtra apenas os agendamentos do profissional logado
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(month) && 
+    a.userId === currentUserId
+  );
+  
+  const total = monthAppts.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  
+  document.getElementById('reportSessions').textContent = monthAppts.length;
+  document.getElementById('reportRevenue').textContent = 'R$ ' + total.toFixed(2);
+  
+  const byPatient = {};
+  monthAppts.forEach(appt => {
+    if (!byPatient[appt.patientId]) { byPatient[appt.patientId] = {sessions: 0, total: 0}; }
+    byPatient[appt.patientId].sessions++;
+    byPatient[appt.patientId].total += parseFloat(appt.value || 0);
+  });
+  
+  const tbody = document.getElementById('reportTable');
+  tbody.innerHTML = '';
+  
+  Object.entries(byPatient).forEach(([pid, data]) => {
+    const patient = patients.find(p => p.id === pid);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${patient ? patient.name : '-'}</td>
+      <td>${data.sessions}</td>
+      <td>R$ ${data.total.toFixed(2)}</td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+// NOVO RELATÓRIO: Atendimentos por Paciente (Todos os pacientes)
+function exportPatientReportExcel() {
+  const month = document.getElementById('reportMonth').value;
+  if (!month) {
+    alert('Selecione o mês/ano do relatório!');
+    return;
+  }
+  
+  // Pega todos os agendamentos do mês (de todos os profissionais)
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(month)
+  );
+  
+  // Agrupa por paciente
+  const byPatient = {};
+  monthAppts.forEach(appt => {
+    if (!byPatient[appt.patientId]) { 
+      byPatient[appt.patientId] = {
+        patient: patients.find(p => p.id === appt.patientId),
+        sessions: 0, 
+        total: 0
+      }; 
+    }
+    byPatient[appt.patientId].sessions++;
+    byPatient[appt.patientId].total += parseFloat(appt.value || 0);
+  });
+  
+  // Ordena alfabeticamente
+  const sortedPatients = Object.values(byPatient).filter(item => item.patient).sort((a, b) => 
+    a.patient.name.localeCompare(b.patient.name)
+  );
+  
+  if (sortedPatients.length === 0) {
+    alert('Nenhum atendimento encontrado para este período.');
+    return;
+  }
+  
+  const data = sortedPatients.map(item => ({
+    'Nome do Paciente': item.patient.name,
+    'Quantidade de Atendimentos': item.sessions,
+    'Valor Total': 'R$ ' + item.total.toFixed(2)
+  }));
+  
+  // Adiciona linha de total
+  const totalGeral = sortedPatients.reduce((sum, item) => sum + item.total, 0);
+  const totalAtendimentos = sortedPatients.reduce((sum, item) => sum + item.sessions, 0);
+  
+  data.push({
+    'Nome do Paciente': 'TOTAL GERAL',
+    'Quantidade de Atendimentos': totalAtendimentos,
+    'Valor Total': 'R$ ' + totalGeral.toFixed(2)
+  });
+  
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Atendimentos por Paciente');
+  
+  const [year, mon] = month.split('-');
+  const monthName = new Date(parseInt(year), parseInt(mon) - 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  const fileName = 'Atendimentos_Por_Paciente_' + month + '.xlsx';
+  
+  XLSX.writeFile(wb, fileName);
+}
+
+function generatePatientAppointmentsReportPDF() {
+  const month = document.getElementById('reportMonth').value;
+  if (!month) {
+    alert('Selecione o mês/ano do relatório!');
+    return;
+  }
+  
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  
+  const [year, mon] = month.split('-');
+  const monthName = new Date(parseInt(year), parseInt(mon) - 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  // Pega todos os agendamentos do mês (de todos os profissionais)
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(month)
+  );
+  
+  // Agrupa por paciente
+  const byPatient = {};
+  monthAppts.forEach(appt => {
+    if (!byPatient[appt.patientId]) { 
+      byPatient[appt.patientId] = {
+        patient: patients.find(p => p.id === appt.patientId),
+        sessions: 0, 
+        total: 0
+      }; 
+    }
+    byPatient[appt.patientId].sessions++;
+    byPatient[appt.patientId].total += parseFloat(appt.value || 0);
+  });
+  
+  // Ordena alfabeticamente
+  const sortedPatients = Object.values(byPatient).filter(item => item.patient).sort((a, b) => 
+    a.patient.name.localeCompare(b.patient.name)
+  );
+  
+  if (sortedPatients.length === 0) {
+    alert('Nenhum atendimento encontrado para este período.');
+    return;
+  }
+  
+  // Cabeçalho
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.text(sig.clinic.toUpperCase(), 105, 20, { align: 'center' });
+  doc.setFontSize(14);
+  doc.text('ATENDIMENTOS POR PACIENTE', 105, 35, { align: 'center' });
+  doc.setFontSize(11);
+  doc.text(monthName.toUpperCase(), 105, 45, { align: 'center' });
+  
+  // Dados do relatório
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  
+  const tableData = sortedPatients.map(item => [
+    item.patient.name,
+    item.sessions.toString(),
+    'R$ ' + item.total.toFixed(2)
+  ]);
+  
+  // Adiciona linha de total
+  const totalGeral = sortedPatients.reduce((sum, item) => sum + item.total, 0);
+  const totalAtendimentos = sortedPatients.reduce((sum, item) => sum + item.sessions, 0);
+  
+  doc.autoTable({
+    startY: 60,
+    head: [['Nome do Paciente', 'Qtd. Atendimentos', 'Valor Total']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: { fillColor: [30, 58, 95], textColor: 255, fontSize: 11 },
+    styles: { fontSize: 10 },
+    foot: [['TOTAL GERAL', totalAtendimentos.toString(), 'R$ ' + totalGeral.toFixed(2)]],
+    footStyles: { fillColor: [214, 158, 46], textColor: 255, fontStyle: 'bold' }
+  });
+  
+  // Rodapé com assinatura
+  const finalY = doc.lastAutoTable.finalY + 30;
+  
+  doc.setFontSize(11);
+  doc.setTextColor(30, 58, 95);
+  doc.text('_________________________________', 10, finalY);
+  doc.setTextColor(0, 0, 0);
+  doc.text(sig.name || 'Profissional', 10, finalY + 6);
+  doc.text(sig.registry || '', 10, finalY + 12);
+  
+  // Rodapé da página
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 285, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 290, { align: 'center' });
+  }
+  
+  const fileName = 'Atendimentos_Por_Paciente_' + month + '.pdf';
+  doc.save(fileName);
+}
+
+function generateDashboardPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  
+  const now = new Date();
+  const currentMonth = now.toISOString().slice(0, 7);
+  
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(currentMonth) && 
+    a.userId === currentUserId
+  );
+  
+  const totalRevenue = monthAppts.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  const pending = appointments.filter(a => 
+    !a.cancelled && 
+    !a.paid && 
+    a.userId === currentUserId
+  ).reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.text('DASHBOARD', 105, 25, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(sig.clinic.toUpperCase(), 105, 35, { align: 'center' });
+  doc.text(sig.name || 'Profissional', 105, 45, { align: 'center' });
+  
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(14);
+  doc.text('Resumo do Mês Atual', 10, 65);
+  
+  const data = [
+    ['Faturamento Total', 'R$ ' + totalRevenue.toFixed(2)],
+    ['Atendimentos', monthAppts.length.toString()],
+    ['Ticket Médio', 'R$ ' + (monthAppts.length > 0 ? (totalRevenue / monthAppts.length).toFixed(2) : '0.00')],
+    ['A Receber', 'R$ ' + pending.toFixed(2)]
+  ];
+  
+  doc.autoTable({
+    startY: 75,
+    head: [['Indicador', 'Valor']],
+    body: data,
+    theme: 'striped',
+    headStyles: { fillColor: [30, 58, 95], textColor: 255 },
+    styles: { fontSize: 12 }
+  });
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 290, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 295, { align: 'center' });
+  }
+  
+  doc.save('Dashboard_' + currentMonth + '.pdf');
+}
+
+function generateMonthlyReportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  
+  const month = document.getElementById('reportMonth').value;
+  const [year, mon] = month.split('-').map(Number);
+  const monthName = new Date(year, mon - 1).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(month) && 
+    a.userId === currentUserId
+  );
+  
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 50, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.text('RELATÓRIO MENSAL', 105, 25, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(sig.clinic.toUpperCase(), 105, 35, { align: 'center' });
+  doc.text(sig.name || 'Profissional', 105, 45, { align: 'center' });
+  
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(14);
+  doc.text('Período: ' + monthName, 10, 65);
+  
+  const total = monthAppts.reduce((s, a) => s + parseFloat(a.value || 0), 0);
+  const data = [
+    ['Total de Atendimentos', monthAppts.length.toString()],
+    ['Faturamento Total', 'R$ ' + total.toFixed(2)],
+    ['Ticket Médio', 'R$ ' + (monthAppts.length > 0 ? (total / monthAppts.length).toFixed(2) : '0.00')]
+  ];
+  
+  doc.autoTable({
+    startY: 75,
+    head: [['Indicador', 'Valor']],
+    body: data,
+    theme: 'striped',
+    headStyles: { fillColor: [30, 58, 95], textColor: 255 },
+    styles: { fontSize: 12 }
+  });
+  
+  const byPatient = {};
+  monthAppts.forEach(appt => {
+    if (!byPatient[appt.patientId]) { byPatient[appt.patientId] = {sessions: 0, total: 0}; }
+    byPatient[appt.patientId].sessions++;
+    byPatient[appt.patientId].total += parseFloat(appt.value || 0);
+  });
+  
+  const patientData = Object.entries(byPatient).map(([pid, data]) => {
+    const patient = patients.find(p => p.id === pid);
+    return [patient ? patient.name : '-', data.sessions.toString(), 'R$ ' + data.total.toFixed(2)];
+  });
+  
+  if (patientData.length > 0) {
+    doc.text('Detalhamento por Paciente', 10, doc.lastAutoTable.finalY + 15);
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 20,
+      head: [['Paciente', 'Sessões', 'Total']],
+      body: patientData,
+      theme: 'striped',
+      headStyles: { fillColor: [30, 58, 95], textColor: 255 }
+    });
+  }
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 290, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 295, { align: 'center' });
+  }
+  
+  doc.save('Relatorio_Mensal_' + month + '.pdf');
+}
+
+function exportAgendaExcel() {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthStr = String(month + 1).padStart(2, '0');
+  const monthKey = year + '-' + monthStr;
+  
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(monthKey)
+  ).sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+  
+  if (monthAppts.length === 0) {
+    alert('Nenhum agendamento encontrado para este mês.');
+    return;
+  }
+  
+  const data = monthAppts.map(appt => {
+    const patient = patients.find(p => p.id === appt.patientId);
+    const user = clinicUsers.find(u => u.id === appt.userId);
+    return {
+      'Data': formatDate(appt.date),
+      'Horário': appt.time,
+      'Paciente': patient ? patient.name : '-',
+      'Profissional': user ? user.name : '-',
+      'Tipo': appt.typeName || appt.type,
+      'Valor': 'R$ ' + parseFloat(appt.value || 0).toFixed(2),
+      'Status': appt.paid ? 'Pago' : 'Pendente',
+      'Observações': appt.notes || ''
+    };
+  });
+  
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Agenda');
+  
+  const monthName = new Date(year, month).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  const fileName = 'Agenda_' + monthName.replace(/\s+/g, '_') + '.xlsx';
+  
+  XLSX.writeFile(wb, fileName);
+}
+
+function exportAgendaPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const sig = getProfessionalSignature();
+  
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const monthStr = String(month + 1).padStart(2, '0');
+  const monthKey = year + '-' + monthStr;
+  const monthName = new Date(year, month).toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
+  
+  const monthAppts = appointments.filter(a => 
+    !a.cancelled && 
+    a.date.startsWith(monthKey)
+  ).sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+  
+  if (monthAppts.length === 0) {
+    alert('Nenhum agendamento encontrado para este mês.');
+    return;
+  }
+  
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, 210, 40, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.text(sig.clinic.toUpperCase(), 105, 20, { align: 'center' });
+  doc.setFontSize(12);
+  doc.text(sig.name || 'Profissional', 105, 30, { align: 'center' });
+  doc.text(sig.registry || '', 105, 37, { align: 'center' });
+  
+  doc.setDrawColor(30, 58, 95);
+  doc.setLineWidth(0.5);
+  doc.line(10, 45, 200, 45);
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(16);
+  doc.text('AGENDA MENSAL', 105, 55, { align: 'center' });
+  doc.setFontSize(11);
+  doc.setTextColor(0, 0, 0);
+  doc.text('Período: ' + monthName, 10, 70);
+  doc.text('Total de Agendamentos: ' + monthAppts.length, 10, 78);
+  doc.line(10, 85, 200, 85);
+  
+  const tableData = monthAppts.map(appt => {
+    const patient = patients.find(p => p.id === appt.patientId);
+    const user = clinicUsers.find(u => u.id === appt.userId);
+    return [
+      formatDate(appt.date),
+      appt.time,
+      patient ? patient.name : '-',
+      user ? user.name : '-'
+    ];
+  });
+  
+  doc.autoTable({
+    startY: 95,
+    head: [['Data', 'Horário', 'Paciente', 'Profissional']],
+    body: tableData,
+    theme: 'striped',
+    headStyles: { fillColor: [30, 58, 95], textColor: 255 },
+    styles: { fontSize: 10 }
+  });
+  
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('Documento gerado em ' + new Date().toLocaleDateString('pt-BR') + ' - ASM Gestão Clínica', 105, 290, { align: 'center' });
+    doc.text('© 2024 Dra. Andresa Augusto - Proibida reprodução sem autorização', 105, 295, { align: 'center' });
+  }
+  
+  const fileName = 'Agenda_' + monthName.replace(/\s+/g, '_') + '.pdf';
+  doc.save(fileName);
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+  window.currentWhatsAppAppt = null;
+}
+
+function formatDate(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return d + '/' + m + '/' + y;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const savedCPF = localStorage.getItem('asm_user_cpf');
+  const savedCode = localStorage.getItem('asm_activation_code');
+  
+  if (savedCPF && savedCode) {
+    currentUserCPF = savedCPF;
+    currentActivationCode = savedCode;
+    userDataPath = 'clinics/' + currentActivationCode;
+    
+    const savedUserId = localStorage.getItem('asm_user_id');
+    if (savedUserId) {
+      currentUserId = savedUserId;
+      loadDataFromFirebase();
+    } else {
+      checkExistingUsers();
+    }
+  }
+});
+</script>
+</body>
+</html>
